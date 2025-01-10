@@ -34,6 +34,17 @@ def login_to_poe(driver, email):
         email_input = WebDriverWait(driver, 30).until(
             EC.presence_of_element_located((By.CSS_SELECTOR, "input[type='email']"))
         )
+
+        # Debug: Print the value we're about to enter
+        logging.info(f"Attempting to enter email: {email}")
+        
+        # Enter email
+        email_input.clear()  # Clear any existing value
+        email_input.send_keys(email)
+        
+        # Debug: Print the value after entering
+        entered_email = email_input.get_attribute('value')
+        logging.info(f"Email entered in the field: {entered_email}")
         
         # Enter email
         logging.info("Entering email...")
