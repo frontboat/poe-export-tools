@@ -1,11 +1,13 @@
 const form = document.querySelector<HTMLFormElement>("#share-form");
 const input = document.querySelector<HTMLInputElement>("#share-url");
 const grid = document.querySelector<HTMLElement>("#grid");
+const downloadButton = document.querySelector<HTMLButtonElement>("#download-btn");
 
 const urls: string[] = [];
 
 function setLoading(loading: boolean) {
   if (input) input.disabled = loading;
+  if (downloadButton) downloadButton.disabled = loading || urls.length === 0;
 }
 
 function clearGrid() {
@@ -23,17 +25,18 @@ function renderUrls(list: string[]) {
   const fragment = document.createDocumentFragment();
 
   list.forEach((url, index) => {
+    const proxyUrl = `/api/file?url=${encodeURIComponent(url)}`;
     const anchor = document.createElement("a");
     anchor.className = "media-item";
     anchor.style.animationDelay = `${Math.min(index * 0.03, 0.3)}s`;
-    anchor.href = url;
+    anchor.href = proxyUrl;
     anchor.target = "_blank";
     anchor.rel = "noreferrer";
 
     const preview = document.createElement("div");
     preview.className = "media-preview";
     const img = document.createElement("img");
-    img.src = url;
+    img.src = proxyUrl;
     img.loading = "lazy";
     img.alt = "Attachment preview";
     preview.appendChild(img);
@@ -53,6 +56,8 @@ async function fetchShare() {
     return;
   }
 
+  urls.length = 0;
+  if (downloadButton) downloadButton.disabled = true;
   clearGrid();
   setLoading(true);
   try {
@@ -69,6 +74,7 @@ async function fetchShare() {
     }
 
     renderUrls(urls);
+    if (downloadButton) downloadButton.disabled = urls.length === 0;
     const url = new URL(window.location.href);
     url.searchParams.set("url", shareUrl);
     window.history.replaceState({}, "", url.toString());
@@ -78,9 +84,33 @@ async function fetchShare() {
   }
 }
 
+async function downloadAll() {
+  if (urls.length === 0 || !downloadButton) return;
+  downloadButton.disabled = true;
+
+  for (const url of urls) {
+    const filename = url.split("/").pop() || "attachment";
+    const proxyUrl = `/api/file?url=${encodeURIComponent(url)}`;
+    const link = document.createElement("a");
+    link.href = proxyUrl;
+    link.download = filename;
+    link.rel = "noreferrer";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    await new Promise((resolve) => setTimeout(resolve, 150));
+  }
+
+  downloadButton.disabled = false;
+}
+
 form?.addEventListener("submit", (event) => {
   event.preventDefault();
   void fetchShare();
+});
+
+downloadButton?.addEventListener("click", () => {
+  void downloadAll();
 });
 
 const params = new URLSearchParams(window.location.search);
@@ -88,4 +118,8 @@ const initialUrl = params.get("url");
 if (initialUrl && input) {
   input.value = initialUrl;
   void fetchShare();
+}
+
+if (downloadButton) {
+  downloadButton.disabled = true;
 }

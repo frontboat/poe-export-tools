@@ -4,6 +4,9 @@ import index from "./index.html";
 const allowedHosts = new Set(["poe.com", "www.poe.com"]);
 const userAgent =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36";
+const envPort = Bun.env.PORT;
+const parsedPort = envPort ? Number.parseInt(envPort, 10) : NaN;
+const port = Number.isInteger(parsedPort) && parsedPort >= 0 ? parsedPort : 3000;
 
 function normalizeShareUrl(rawUrl: string): string | null {
   try {
@@ -50,7 +53,19 @@ function collectAttachmentUrls(nextData: any): string[] {
   return [...urls];
 }
 
+function normalizeFileUrl(rawUrl: string): string | null {
+  try {
+    const url = new URL(rawUrl);
+    if (url.protocol !== "https:") return null;
+    if (url.hostname === "localhost" || url.hostname === "127.0.0.1") return null;
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
 const server = serve({
+  port,
   routes: {
     "/": index,
     "/api/share": {
@@ -89,6 +104,46 @@ const server = serve({
         } catch (error) {
           const message = error instanceof Error ? error.message : "Unknown error";
           return Response.json({ error: `Fetch failed: ${message}` }, { status: 502 });
+        }
+      },
+    },
+    "/api/file": {
+      async GET(req) {
+        const requestUrl = new URL(req.url);
+        const rawUrl = requestUrl.searchParams.get("url");
+        if (!rawUrl) {
+          return Response.json({ error: "Missing url parameter" }, { status: 400 });
+        }
+
+        const fileUrl = normalizeFileUrl(rawUrl);
+        if (!fileUrl) {
+          return Response.json({ error: "Invalid file URL" }, { status: 400 });
+        }
+
+        try {
+          const response = await fetch(fileUrl, {
+            headers: { "User-Agent": userAgent },
+          });
+
+          if (!response.ok) {
+            return Response.json(
+              { error: "Upstream error", status: response.status },
+              { status: 502 }
+            );
+          }
+
+          const headers = new Headers(response.headers);
+          if (!headers.has("Cache-Control")) {
+            headers.set("Cache-Control", "public, max-age=31536000, immutable");
+          }
+
+          return new Response(response.body, {
+            status: response.status,
+            headers,
+          });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "Unknown error";
+          return Response.json({ error: `File fetch failed: ${message}` }, { status: 502 });
         }
       },
     },

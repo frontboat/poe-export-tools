@@ -1,7 +1,7 @@
 await Bun.build({
   entrypoints: ["./server.ts"],
   compile: {
-    target: "bun-linux-x64-modern", //change this to bun-darwin-arm64-modern for deploying on a mac in local dev. check out bun --compile docs 
+    target: "bun-darwin-arm64-modern", //change this to bun-darwin-arm64-modern for deploying on a mac in local dev. check out bun --compile docs 
     execArgv: ["--smol"],
     outfile: "./fullstack",
   },
