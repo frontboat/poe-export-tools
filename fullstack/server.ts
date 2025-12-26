@@ -1,4 +1,4 @@
-import { embeddedFiles, file, serve } from "bun";
+import { file, serve } from "bun";
 import index from "./index.html";
 import logoSvg from "./logo.svg" with { type: "file" };
 import logoPng from "./logo.png" with { type: "file" };
@@ -11,26 +11,13 @@ const userAgent =
 const envPort = Bun.env.PORT;
 const parsedPort = envPort ? Number.parseInt(envPort, 10) : NaN;
 const port = Number.isInteger(parsedPort) && parsedPort >= 0 ? parsedPort : 3000;
-const staticRoutes: Record<string, Blob> = {};
+const staticRoutes: Record<string, ReturnType<typeof file>> = {};
 const staticAssets = [logoSvg, logoPng, logo32, logo16];
-
-for (const blob of embeddedFiles) {
-  if (!blob.name) continue;
-  staticRoutes[`/${blob.name}`] = blob;
-  const unhashed = blob.name.replace(/-[a-f0-9]{8,}\./, ".");
-  if (unhashed !== blob.name) {
-    staticRoutes[`/${unhashed}`] = blob;
-  }
-}
 
 for (const assetPath of staticAssets) {
   const name = assetPath.split("/").pop();
   if (!name) continue;
   staticRoutes[`/${name}`] = file(assetPath);
-  const unhashed = name.replace(/-[a-f0-9]{8,}\./, ".");
-  if (unhashed !== name) {
-    staticRoutes[`/${unhashed}`] = file(assetPath);
-  }
 }
 
 function normalizeShareUrl(rawUrl: string): string | null {
