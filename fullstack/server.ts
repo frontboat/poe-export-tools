@@ -90,103 +90,78 @@ function makeCrcTable() {
 
 const crcTable = makeCrcTable();
 
-function crc32(bytes: Uint8Array) {
-  let crc = 0xffffffff;
+function crc32Start() {
+  return 0xffffffff;
+}
+
+function crc32Update(crc: number, bytes: Uint8Array) {
+  let value = crc;
   for (const byte of bytes) {
-    const index = (crc ^ byte) & 0xff;
-    crc = crcTable[index] ^ (crc >>> 8);
+    const index = (value ^ byte) & 0xff;
+    value = crcTable[index] ^ (value >>> 8);
   }
+  return value;
+}
+
+function crc32Finish(crc: number) {
   return (crc ^ 0xffffffff) >>> 0;
 }
 
-function buildZip(entries: { name: string; data: Uint8Array }[]) {
-  const encoder = new TextEncoder();
-  const chunks: Uint8Array[] = [];
-  const centralChunks: Uint8Array[] = [];
-  let offset = 0;
-  const { dosDate, dosTime } = toDosDateTime(new Date());
+function buildLocalHeader(
+  nameBytes: Uint8Array,
+  flags: number,
+  crc: number,
+  size: number,
+  dosTime: number,
+  dosDate: number
+) {
+  const localHeader = new Uint8Array(30 + nameBytes.length);
+  const localView = new DataView(localHeader.buffer);
+  localView.setUint32(0, 0x04034b50, true);
+  localView.setUint16(4, 20, true);
+  localView.setUint16(6, flags, true);
+  localView.setUint16(8, 0, true);
+  localView.setUint16(10, dosTime, true);
+  localView.setUint16(12, dosDate, true);
+  localView.setUint32(14, crc, true);
+  localView.setUint32(18, size, true);
+  localView.setUint32(22, size, true);
+  localView.setUint16(26, nameBytes.length, true);
+  localView.setUint16(28, 0, true);
+  localHeader.set(nameBytes, 30);
+  return localHeader;
+}
 
-  for (const entry of entries) {
-    const nameBytes = encoder.encode(entry.name);
-    const crc = crc32(entry.data);
-    const size = entry.data.length;
-
-    const localHeader = new Uint8Array(30 + nameBytes.length);
-    const localView = new DataView(localHeader.buffer);
-    localView.setUint32(0, 0x04034b50, true);
-    localView.setUint16(4, 20, true);
-    localView.setUint16(6, 0, true);
-    localView.setUint16(8, 0, true);
-    localView.setUint16(10, dosTime, true);
-    localView.setUint16(12, dosDate, true);
-    localView.setUint32(14, crc, true);
-    localView.setUint32(18, size, true);
-    localView.setUint32(22, size, true);
-    localView.setUint16(26, nameBytes.length, true);
-    localView.setUint16(28, 0, true);
-    localHeader.set(nameBytes, 30);
-
-    chunks.push(localHeader, entry.data);
-
-    const centralHeader = new Uint8Array(46 + nameBytes.length);
-    const centralView = new DataView(centralHeader.buffer);
-    centralView.setUint32(0, 0x02014b50, true);
-    centralView.setUint16(4, 20, true);
-    centralView.setUint16(6, 20, true);
-    centralView.setUint16(8, 0, true);
-    centralView.setUint16(10, 0, true);
-    centralView.setUint16(12, dosTime, true);
-    centralView.setUint16(14, dosDate, true);
-    centralView.setUint32(16, crc, true);
-    centralView.setUint32(20, size, true);
-    centralView.setUint32(24, size, true);
-    centralView.setUint16(28, nameBytes.length, true);
-    centralView.setUint16(30, 0, true);
-    centralView.setUint16(32, 0, true);
-    centralView.setUint16(34, 0, true);
-    centralView.setUint16(36, 0, true);
-    centralView.setUint32(38, 0, true);
-    centralView.setUint32(42, offset, true);
-    centralHeader.set(nameBytes, 46);
-
-    centralChunks.push(centralHeader);
-    offset += localHeader.length + entry.data.length;
-  }
-
-  const centralOffset = offset;
-  let centralSize = 0;
-  for (const chunk of centralChunks) {
-    centralSize += chunk.length;
-  }
-
-  const endRecord = new Uint8Array(22);
-  const endView = new DataView(endRecord.buffer);
-  endView.setUint32(0, 0x06054b50, true);
-  endView.setUint16(4, 0, true);
-  endView.setUint16(6, 0, true);
-  endView.setUint16(8, entries.length, true);
-  endView.setUint16(10, entries.length, true);
-  endView.setUint32(12, centralSize, true);
-  endView.setUint32(16, centralOffset, true);
-  endView.setUint16(20, 0, true);
-
-  const totalLength =
-    chunks.reduce((sum, chunk) => sum + chunk.length, 0) +
-    centralSize +
-    endRecord.length;
-  const output = new Uint8Array(totalLength);
-  let cursor = 0;
-  for (const chunk of chunks) {
-    output.set(chunk, cursor);
-    cursor += chunk.length;
-  }
-  for (const chunk of centralChunks) {
-    output.set(chunk, cursor);
-    cursor += chunk.length;
-  }
-  output.set(endRecord, cursor);
-
-  return output;
+function buildCentralHeader(
+  nameBytes: Uint8Array,
+  flags: number,
+  crc: number,
+  size: number,
+  dosTime: number,
+  dosDate: number,
+  offset: number
+) {
+  const centralHeader = new Uint8Array(46 + nameBytes.length);
+  const centralView = new DataView(centralHeader.buffer);
+  centralView.setUint32(0, 0x02014b50, true);
+  centralView.setUint16(4, 20, true);
+  centralView.setUint16(6, 20, true);
+  centralView.setUint16(8, flags, true);
+  centralView.setUint16(10, 0, true);
+  centralView.setUint16(12, dosTime, true);
+  centralView.setUint16(14, dosDate, true);
+  centralView.setUint32(16, crc, true);
+  centralView.setUint32(20, size, true);
+  centralView.setUint32(24, size, true);
+  centralView.setUint16(28, nameBytes.length, true);
+  centralView.setUint16(30, 0, true);
+  centralView.setUint16(32, 0, true);
+  centralView.setUint16(34, 0, true);
+  centralView.setUint16(36, 0, true);
+  centralView.setUint32(38, 0, true);
+  centralView.setUint32(42, offset, true);
+  centralHeader.set(nameBytes, 46);
+  return centralHeader;
 }
 
 function formatGalleryZipName(date: Date) {
@@ -274,52 +249,141 @@ const server = serve({
             return Response.json({ error: "No attachments found" }, { status: 404 });
           }
 
-          const entries: { name: string; data: Uint8Array }[] = [];
+          const entries: {
+            nameBytes: Uint8Array;
+            crc: number;
+            size: number;
+            offset: number;
+          }[] = [];
           const seenNames = new Map<string, number>();
-
-          for (let i = 0; i < attachments.length; i++) {
-            const rawFileUrl = attachments[i];
-            const fileUrl = normalizeFileUrl(rawFileUrl);
-            if (!fileUrl) {
-              return Response.json({ error: "Invalid attachment URL" }, { status: 400 });
-            }
-
-            const fileResponse = await fetch(fileUrl, {
-              headers: { "User-Agent": userAgent },
-            });
-
-            if (!fileResponse.ok) {
-              return Response.json(
-                { error: "Upstream error", status: fileResponse.status },
-                { status: 502 }
-              );
-            }
-
-            const buffer = new Uint8Array(await fileResponse.arrayBuffer());
-            const url = new URL(fileUrl);
-            let name = url.pathname.split("/").pop() || `attachment-${i + 1}`;
-            const count = seenNames.get(name) ?? 0;
-            if (count > 0) {
-              const dotIndex = name.lastIndexOf(".");
-              if (dotIndex > 0) {
-                name =
-                  name.slice(0, dotIndex) + `-${count + 1}` + name.slice(dotIndex);
-              } else {
-                name = `${name}-${count + 1}`;
-              }
-            }
-
-            if (!name.includes(".")) {
-              name = `${name}.png`;
-            }
-            seenNames.set(name, count + 1);
-
-            entries.push({ name, data: buffer });
-          }
-
-          const zipData = buildZip(entries);
           const filename = formatGalleryZipName(new Date());
-          return new Response(zipData, {
+          const encoder = new TextEncoder();
+          const { dosDate, dosTime } = toDosDateTime(new Date());
+          const streamFlags = 0x08;
+
+          const stream = {
+            async *[Symbol.asyncIterator]() {
+              let offset = 0;
+
+              for (let i = 0; i < attachments.length; i++) {
+                const rawFileUrl = attachments[i];
+                const fileUrl = normalizeFileUrl(rawFileUrl);
+                if (!fileUrl) {
+                  throw new Error("Invalid attachment URL");
+                }
+
+                const fileResponse = await fetch(fileUrl, {
+                  headers: { "User-Agent": userAgent },
+                });
+
+                if (!fileResponse.ok) {
+                  throw new Error("Upstream error");
+                }
+
+                const url = new URL(fileUrl);
+                let name = url.pathname.split("/").pop() || `attachment-${i + 1}`;
+                const count = seenNames.get(name) ?? 0;
+                if (count > 0) {
+                  const dotIndex = name.lastIndexOf(".");
+                  if (dotIndex > 0) {
+                    name =
+                      name.slice(0, dotIndex) + `-${count + 1}` + name.slice(dotIndex);
+                  } else {
+                    name = `${name}-${count + 1}`;
+                  }
+                }
+
+                if (!name.includes(".")) {
+                  name = `${name}.png`;
+                }
+                seenNames.set(name, count + 1);
+
+                const nameBytes = encoder.encode(name);
+                const localOffset = offset;
+                const localHeader = buildLocalHeader(
+                  nameBytes,
+                  streamFlags,
+                  0,
+                  0,
+                  dosTime,
+                  dosDate
+                );
+
+                yield localHeader;
+                offset += localHeader.length;
+
+                if (!fileResponse.body) {
+                  throw new Error("Missing file body");
+                }
+
+                const reader = fileResponse.body.getReader();
+                let crc = crc32Start();
+                let size = 0;
+                while (true) {
+                  const { done, value } = await reader.read();
+                  if (done) break;
+                  const chunk = value ?? new Uint8Array();
+                  size += chunk.length;
+                  crc = crc32Update(crc, chunk);
+                  yield chunk;
+                  offset += chunk.length;
+                }
+
+                const finalCrc = crc32Finish(crc);
+                const descriptor = new Uint8Array(16);
+                const descView = new DataView(descriptor.buffer);
+                descView.setUint32(0, 0x08074b50, true);
+                descView.setUint32(4, finalCrc, true);
+                descView.setUint32(8, size, true);
+                descView.setUint32(12, size, true);
+                yield descriptor;
+                offset += descriptor.length;
+
+                entries.push({
+                  nameBytes,
+                  crc: finalCrc,
+                  size,
+                  offset: localOffset,
+                });
+              }
+
+              const centralOffset = offset;
+              let centralSize = 0;
+              const centralChunks: Uint8Array[] = [];
+              for (const entry of entries) {
+                const centralHeader = buildCentralHeader(
+                  entry.nameBytes,
+                  streamFlags,
+                  entry.crc,
+                  entry.size,
+                  dosTime,
+                  dosDate,
+                  entry.offset
+                );
+                centralChunks.push(centralHeader);
+                centralSize += centralHeader.length;
+              }
+
+              for (const chunk of centralChunks) {
+                yield chunk;
+                offset += chunk.length;
+              }
+
+              const endRecord = new Uint8Array(22);
+              const endView = new DataView(endRecord.buffer);
+              endView.setUint32(0, 0x06054b50, true);
+              endView.setUint16(4, 0, true);
+              endView.setUint16(6, 0, true);
+              endView.setUint16(8, entries.length, true);
+              endView.setUint16(10, entries.length, true);
+              endView.setUint32(12, centralSize, true);
+              endView.setUint32(16, centralOffset, true);
+              endView.setUint16(20, 0, true);
+              yield endRecord;
+            },
+          };
+
+          return new Response(stream, {
             headers: {
               "Content-Type": "application/zip",
               "Content-Disposition": `attachment; filename="${filename}"`,
