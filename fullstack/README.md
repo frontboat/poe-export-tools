@@ -34,3 +34,12 @@ To run:
 ```bash
 ./fullstack
 ```
+
+railway env:
+```
+RAILPACK_BUILD_CMD="bun run build.ts"
+RAILPACK_START_CMD="./fullstack"
+RAILPACK_INSTALL_CMD="bun install --production"
+RAILPACK_PACKAGES="bun@latest"
+```
+!TODO: in build.ts, programatically adjust "version" to git commit id, so we dont have to manually change.
