@@ -1,5 +1,9 @@
-import { serve } from "bun";
+import { file, serve } from "bun";
 import index from "./index.html";
+import logoSvg from "./logo.svg" with { type: "file" };
+import logoPng from "./logo.png" with { type: "file" };
+import logo32 from "./logo-32.png" with { type: "file" };
+import logo16 from "./logo-16.png" with { type: "file" };
 
 const allowedHosts = new Set(["poe.com", "www.poe.com"]);
 const userAgent =
@@ -7,6 +11,18 @@ const userAgent =
 const envPort = Bun.env.PORT;
 const parsedPort = envPort ? Number.parseInt(envPort, 10) : NaN;
 const port = Number.isInteger(parsedPort) && parsedPort >= 0 ? parsedPort : 3000;
+const staticRoutes: Record<string, ReturnType<typeof file>> = {};
+const staticAssets = [logoSvg, logoPng, logo32, logo16];
+
+for (const assetPath of staticAssets) {
+  const name = assetPath.split("/").pop();
+  if (!name) continue;
+  staticRoutes[`/${name}`] = file(assetPath);
+  const unhashed = name.replace(/-[a-f0-9]{8,}\./, ".");
+  if (unhashed !== name) {
+    staticRoutes[`/${unhashed}`] = file(assetPath);
+  }
+}
 
 function normalizeShareUrl(rawUrl: string): string | null {
   try {
@@ -222,6 +238,7 @@ async function fetchShareUrls(shareUrl: string) {
 
 const server = serve({
   port,
+  static: staticRoutes,
   routes: {
     "/": index,
     "/api/share": {
