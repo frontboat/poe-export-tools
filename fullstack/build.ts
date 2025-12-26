@@ -2,13 +2,13 @@ await Bun.build({
   entrypoints: ["./server.ts"],
   target: "bun",
   compile: {
-    target: "bun-linux-x64-modern", //change this to bun-darwin-arm64-modern for deploying on a mac in local dev. check out bun --compile docs 
+    target: "bun-linux-x64", //change this to bun-darwin-arm64-modern for deploying on a mac in local dev. check out bun --compile docs 
     execArgv: ["--smol"],
     outfile: "./fullstack",
   },
   minify: true,
   define: {
     "process.env.NODE_ENV": JSON.stringify("production"),
-    VERSION: JSON.stringify("1.2.1"),
+    VERSION: JSON.stringify("1.2.3"),
   },
 });
