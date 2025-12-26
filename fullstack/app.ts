@@ -4,6 +4,7 @@ const grid = document.querySelector<HTMLElement>("#grid");
 const downloadButton = document.querySelector<HTMLButtonElement>("#download-btn");
 
 const urls: string[] = [];
+let currentShareUrl: string | null = null;
 
 function setLoading(loading: boolean) {
   if (input) input.disabled = loading;
@@ -68,16 +69,17 @@ async function fetchShare() {
       return;
     }
 
-    urls.length = 0;
-    if (Array.isArray(data?.urls)) {
-      urls.push(...data.urls);
-    }
+  urls.length = 0;
+  if (Array.isArray(data?.urls)) {
+    urls.push(...data.urls);
+  }
 
-    renderUrls(urls);
-    if (downloadButton) downloadButton.disabled = urls.length === 0;
-    const url = new URL(window.location.href);
-    url.searchParams.set("url", shareUrl);
-    window.history.replaceState({}, "", url.toString());
+  renderUrls(urls);
+  if (downloadButton) downloadButton.disabled = urls.length === 0;
+  currentShareUrl = shareUrl;
+  const url = new URL(window.location.href);
+  url.searchParams.set("url", shareUrl);
+  window.history.replaceState({}, "", url.toString());
   } catch (error) {
   } finally {
     setLoading(false);
@@ -85,21 +87,16 @@ async function fetchShare() {
 }
 
 async function downloadAll() {
-  if (urls.length === 0 || !downloadButton) return;
+  if (urls.length === 0 || !downloadButton || !currentShareUrl) return;
   downloadButton.disabled = true;
 
-  for (const url of urls) {
-    const filename = url.split("/").pop() || "attachment";
-    const proxyUrl = `/api/file?url=${encodeURIComponent(url)}`;
-    const link = document.createElement("a");
-    link.href = proxyUrl;
-    link.download = filename;
-    link.rel = "noreferrer";
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    await new Promise((resolve) => setTimeout(resolve, 150));
-  }
+  const zipUrl = `/api/zip?url=${encodeURIComponent(currentShareUrl)}`;
+  const link = document.createElement("a");
+  link.href = zipUrl;
+  link.rel = "noreferrer";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
 
   downloadButton.disabled = false;
 }
