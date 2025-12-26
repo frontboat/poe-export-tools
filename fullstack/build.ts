@@ -9,6 +9,6 @@ await Bun.build({
   minify: true,
   define: {
     "process.env.NODE_ENV": JSON.stringify("production"),
-    VERSION: JSON.stringify("1.1.9"),
+    VERSION: JSON.stringify("1.2.1"),
   },
 });
