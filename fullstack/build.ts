@@ -1,9 +1,5 @@
 await Bun.build({
   entrypoints: ["./server.ts"],
-  target: "bun",
-  naming: {
-    asset: "[name].[ext]",
-  },
   compile: {
     target: "bun-linux-x64", //change this to bun-darwin-arm64-modern for deploying on a mac in local dev. check out bun --compile docs 
     execArgv: ["--smol"],
@@ -12,6 +8,6 @@ await Bun.build({
   minify: true,
   define: {
     "process.env.NODE_ENV": JSON.stringify("production"),
-    VERSION: JSON.stringify("1.2.4"),
+    VERSION: JSON.stringify("1.3.5"),
   },
 });
