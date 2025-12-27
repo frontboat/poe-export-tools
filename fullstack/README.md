@@ -1,0 +1,45 @@
+# fullstack
+
+Small Bun fullstack app to extract attachment image URLs from Poe share links.
+
+## How it works
+
+- `/` serves a minimal UI where you paste a Poe share URL and press Enter.
+- `/api/share?url=...` fetches the share HTML and extracts attachment URLs from `__NEXT_DATA__`.
+- `/api/file?url=...` proxies image files so previews are same-origin (cache-friendly).
+- `/api/zip?url=...` fetches attachments and returns a single zip download.
+
+To install dependencies:
+
+```bash
+bun install --production
+```
+
+To run locally:
+
+```bash
+bun run server.ts
+```
+
+Open `http://localhost:3000`.
+
+To build a standalone executable:
+
+```bash
+bun run build.ts
+```
+
+To run:
+
+```bash
+./fullstack
+```
+
+railway env:
+```
+RAILPACK_BUILD_CMD="bun run build.ts"
+RAILPACK_START_CMD="./fullstack"
+RAILPACK_INSTALL_CMD="bun install --production"
+RAILPACK_PACKAGES="bun@latest"
+```
+!TODO: in build.ts, programatically adjust "version" to git commit id, so we dont have to manually change.

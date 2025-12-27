@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Poe Gallery</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="https://files.catbox.moe/s92iz7.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="https://files.catbox.moe/s92iz7.svg" />
+    <meta name="apple-mobile-web-app-title" content="Gallery" />
+    <meta name="application-name" content="Poe Gallery" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="top-bar">
+      <form id="share-form" class="share-form" autocomplete="off">
+        <input
+          id="share-url"
+          class="prompt-input"
+          type="url"
+          spellcheck="false"
+          placeholder="poe chat share url"
+          aria-label="Poe share url"
+        />
+      </form>
+      <button id="download-btn" class="icon-button" type="button" aria-label="Download zip">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M12 15V3" />
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <path d="m7 10 5 5 5-5" />
+        </svg>
+      </button>
+    </header>
+
+    <main class="container">
+      <div id="grid" class="media-grid"></div>
+    </main>
+
+    <script type="module" src="./app.ts"></script>
+  </body>
+</html>

@@ -1,17 +1,5 @@
-# Ignore everything
-*
-
-# But not these files...
-!.gitignore
-!creator_earnings.py
-!poe_image_downloader.py
-!poe_text_downloader.py
-!README.md
-!requirements.txt
-
-
-# If you have subdirectories you want to track, add them like this:
-# !/some_directory/**
-
-# If you want to track all files with a certain extension
-# !*.py
+.venv
+.DS_Store
+dist
+.env
+.env.local
