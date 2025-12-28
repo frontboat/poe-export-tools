@@ -1,10 +1,11 @@
+import { downloadZip } from "client-zip";
+
 const form = document.querySelector<HTMLFormElement>("#share-form");
 const input = document.querySelector<HTMLInputElement>("#share-url");
 const grid = document.querySelector<HTMLElement>("#grid");
 const downloadButton = document.querySelector<HTMLButtonElement>("#download-btn");
 
 const urls: string[] = [];
-let currentShareUrl: string | null = null;
 
 function setLoading(loading: boolean) {
   if (input) input.disabled = loading;
@@ -48,6 +49,40 @@ function renderUrls(list: string[]) {
   grid.appendChild(fragment);
 }
 
+function formatGalleryZipName(date: Date) {
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const year = String(date.getFullYear() % 100).padStart(2, "0");
+  return `gallery${month}${day}${year}.zip`;
+}
+
+function buildAttachmentName(rawUrl: string, index: number, seenNames: Map<string, number>) {
+  let name = `attachment-${index + 1}`;
+  try {
+    const url = new URL(rawUrl);
+    name = url.pathname.split("/").pop() || name;
+  } catch {
+    // Fallback to default name.
+  }
+
+  const count = seenNames.get(name) ?? 0;
+  if (count > 0) {
+    const dotIndex = name.lastIndexOf(".");
+    if (dotIndex > 0) {
+      name = name.slice(0, dotIndex) + `-${count + 1}` + name.slice(dotIndex);
+    } else {
+      name = `${name}-${count + 1}`;
+    }
+  }
+
+  if (!name.includes(".")) {
+    name = `${name}.png`;
+  }
+
+  seenNames.set(name, count + 1);
+  return name;
+}
+
 async function fetchShare() {
   if (!input) return;
   const shareUrl = input.value.trim();
@@ -75,7 +110,6 @@ async function fetchShare() {
 
     renderUrls(urls);
     if (downloadButton) downloadButton.disabled = urls.length === 0;
-    currentShareUrl = shareUrl;
     const url = new URL(window.location.href);
     url.searchParams.set("url", shareUrl);
     window.history.replaceState({}, "", url.toString());
@@ -86,18 +120,41 @@ async function fetchShare() {
 }
 
 async function downloadAll() {
-  if (urls.length === 0 || !downloadButton || !currentShareUrl) return;
+  if (urls.length === 0 || !downloadButton) return;
   downloadButton.disabled = true;
+  const filename = formatGalleryZipName(new Date());
 
-  const zipUrl = `/api/zip?url=${encodeURIComponent(currentShareUrl)}`;
-  const link = document.createElement("a");
-  link.href = zipUrl;
-  link.rel = "noreferrer";
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
+  try {
+    const seenNames = new Map<string, number>();
+    const zipResponse = downloadZip(
+      (async function* () {
+        for (const [index, url] of urls.entries()) {
+          const response = await fetch(url);
+          if (!response.ok) {
+            throw new Error(`Failed to fetch attachment ${index + 1}`);
+          }
 
-  downloadButton.disabled = false;
+          yield {
+            name: buildAttachmentName(url, index, seenNames),
+            input: response,
+          };
+        }
+      })()
+    );
+
+    const blob = await zipResponse.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = blobUrl;
+    link.download = filename;
+    link.rel = "noreferrer";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(blobUrl);
+  } finally {
+    downloadButton.disabled = false;
+  }
 }
 
 form?.addEventListener("submit", (event) => {

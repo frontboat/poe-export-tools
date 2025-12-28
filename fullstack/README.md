@@ -6,7 +6,7 @@ Small Bun fullstack app to extract attachment image URLs from Poe share links.
 
 - `/` serves a minimal UI where you paste a Poe share URL and press Enter.
 - `/api/share?url=...` fetches the share HTML and extracts attachment URLs from `__NEXT_DATA__`.
-- `/api/zip?url=...` fetches attachments and returns a single zip download.
+- The browser downloads attachments directly and builds a zip locally with client-zip.
 
 To install dependencies:
 
