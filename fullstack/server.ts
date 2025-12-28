@@ -2,7 +2,6 @@ import { serve } from "bun";
 import index from "./index.html";
 
 const allowedHosts = new Set(["poe.com", "www.poe.com"]);
-const allowedFileHosts = new Set(["poecdn.net"]);
 const userAgent =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36";
 const envPort = Bun.env.PORT;
@@ -20,19 +19,31 @@ function normalizeShareUrl(rawUrl: string): string | null {
   }
 }
 
-function extractNextData(html: string): unknown | null {
-  const marker = '<script id="__NEXT_DATA__" type="application/json">';
-  const start = html.indexOf(marker);
-  if (start === -1) return null;
+async function extractAttachmentUrls(
+  stream: ReadableStream<Uint8Array>
+): Promise<{ urls: string[]; sawNextData: boolean }> {
+  let nextDataPayload = "";
+  let sawNextData = false;
 
-  const jsonStart = html.indexOf(">", start);
-  if (jsonStart === -1) return null;
+  const rewriter = new HTMLRewriter().on('script[id="__NEXT_DATA__"]', {
+    text(text) {
+      sawNextData = true;
+      nextDataPayload += text.text;
+    },
+  });
 
-  const jsonEnd = html.indexOf("</script>", jsonStart);
-  if (jsonEnd === -1) return null;
+  await rewriter.transform(new Response(stream)).arrayBuffer();
 
-  const jsonText = html.slice(jsonStart + 1, jsonEnd).trim();
-  return JSON.parse(jsonText);
+  if (!sawNextData) {
+    return { urls: [], sawNextData: false };
+  }
+
+  try {
+    const nextData = JSON.parse(nextDataPayload) as PoeNextData;
+    return { urls: collectAttachmentUrls(nextData), sawNextData: true };
+  } catch {
+    return { urls: [], sawNextData: true };
+  }
 }
 
 type PoeAttachment = {
@@ -63,7 +74,6 @@ type PoeNextData = {
 function collectAttachmentUrls(nextData: PoeNextData): string[] {
   const messages = nextData?.props?.pageProps?.data?.mainQuery?.chatShare?.messages;
   if (!Array.isArray(messages)) return [];
-
   const urls = new Set<string>();
   for (const message of messages) {
     const attachments = message?.attachments;
@@ -78,7 +88,6 @@ function collectAttachmentUrls(nextData: PoeNextData): string[] {
 
   return [...urls];
 }
-
 async function fetchShareUrls(shareUrl: string) {
   const response = await fetch(shareUrl, {
     headers: { "User-Agent": userAgent },
@@ -91,16 +100,22 @@ async function fetchShareUrls(shareUrl: string) {
     };
   }
 
-  const html = await response.text();
-  const nextData = extractNextData(html);
-  if (!nextData) {
+  if (!response.body) {
+    return {
+      error: { error: "Missing response body", status: 502 },
+      urls: [],
+    };
+  }
+
+  const { urls, sawNextData } = await extractAttachmentUrls(response.body);
+  if (!sawNextData) {
     return {
       error: { error: "Missing __NEXT_DATA__ payload", status: 502 },
       urls: [],
     };
   }
 
-  return { urls: collectAttachmentUrls(nextData), error: null };
+  return { urls, error: null };
 }
 
 const server = serve({

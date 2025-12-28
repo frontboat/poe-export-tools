@@ -7,6 +7,8 @@ const downloadButton = document.querySelector<HTMLButtonElement>("#download-btn"
 
 const urls: string[] = [];
 
+const videoExtensions = new Set(["mp4", "webm", "ogg", "mov", "m4v"]);
+
 function setLoading(loading: boolean) {
   if (input) input.disabled = loading;
   if (downloadButton) downloadButton.disabled = loading || urls.length === 0;
@@ -36,11 +38,22 @@ function renderUrls(list: string[]) {
 
     const preview = document.createElement("div");
     preview.className = "media-preview";
-    const img = document.createElement("img");
-    img.src = url;
-    img.loading = "lazy";
-    img.alt = "Attachment preview";
-    preview.appendChild(img);
+    if (isVideoUrl(url)) {
+      const video = document.createElement("video");
+      video.src = url;
+      video.controls = true;
+      video.muted = true;
+      video.playsInline = true;
+      video.preload = "metadata";
+      video.setAttribute("aria-label", "Attachment preview");
+      preview.appendChild(video);
+    } else {
+      const img = document.createElement("img");
+      img.src = url;
+      img.loading = "lazy";
+      img.alt = "Attachment preview";
+      preview.appendChild(img);
+    }
 
     anchor.appendChild(preview);
     fragment.appendChild(anchor);
@@ -76,11 +89,24 @@ function buildAttachmentName(rawUrl: string, index: number, seenNames: Map<strin
   }
 
   if (!name.includes(".")) {
-    name = `${name}.png`;
+    name = `${name}.${isVideoUrl(rawUrl) ? "mp4" : "png"}`;
   }
 
   seenNames.set(name, count + 1);
   return name;
+}
+
+function isVideoUrl(rawUrl: string) {
+  try {
+    const url = new URL(rawUrl);
+    const segments = url.pathname.split("/");
+    const lastSegment = segments[segments.length - 1] ?? "";
+    if (segments.includes("video")) return true;
+    const extension = lastSegment.split(".").pop()?.toLowerCase();
+    return extension ? videoExtensions.has(extension) : false;
+  } catch {
+    return false;
+  }
 }
 
 async function fetchShare() {
