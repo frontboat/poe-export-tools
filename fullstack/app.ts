@@ -26,18 +26,17 @@ function renderUrls(list: string[]) {
   const fragment = document.createDocumentFragment();
 
   list.forEach((url, index) => {
-    const proxyUrl = `/api/file?url=${encodeURIComponent(url)}`;
     const anchor = document.createElement("a");
     anchor.className = "media-item";
     anchor.style.animationDelay = `${Math.min(index * 0.03, 0.3)}s`;
-    anchor.href = proxyUrl;
+    anchor.href = url;
     anchor.target = "_blank";
     anchor.rel = "noreferrer";
 
     const preview = document.createElement("div");
     preview.className = "media-preview";
     const img = document.createElement("img");
-    img.src = proxyUrl;
+    img.src = url;
     img.loading = "lazy";
     img.alt = "Attachment preview";
     preview.appendChild(img);
@@ -69,17 +68,17 @@ async function fetchShare() {
       return;
     }
 
-  urls.length = 0;
-  if (Array.isArray(data?.urls)) {
-    urls.push(...data.urls);
-  }
+    urls.length = 0;
+    if (Array.isArray(data?.urls)) {
+      urls.push(...data.urls);
+    }
 
-  renderUrls(urls);
-  if (downloadButton) downloadButton.disabled = urls.length === 0;
-  currentShareUrl = shareUrl;
-  const url = new URL(window.location.href);
-  url.searchParams.set("url", shareUrl);
-  window.history.replaceState({}, "", url.toString());
+    renderUrls(urls);
+    if (downloadButton) downloadButton.disabled = urls.length === 0;
+    currentShareUrl = shareUrl;
+    const url = new URL(window.location.href);
+    url.searchParams.set("url", shareUrl);
+    window.history.replaceState({}, "", url.toString());
   } catch (error) {
   } finally {
     setLoading(false);

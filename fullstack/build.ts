@@ -7,8 +7,9 @@ await Bun.build({
     outfile: "./fullstack",
   },
   minify: true,
+  bytecode: true,
   define: {
     "process.env.NODE_ENV": JSON.stringify("production"),
-    VERSION: JSON.stringify("1.3.6"),
+    VERSION: JSON.stringify("1.3.9"),
   },
 });

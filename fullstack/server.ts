@@ -2,6 +2,7 @@ import { serve } from "bun";
 import index from "./index.html";
 
 const allowedHosts = new Set(["poe.com", "www.poe.com"]);
+const allowedFileHosts = new Set(["poecdn.net"]);
 const userAgent =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36";
 const envPort = Bun.env.PORT;
@@ -34,7 +35,32 @@ function extractNextData(html: string): unknown | null {
   return JSON.parse(jsonText);
 }
 
-function collectAttachmentUrls(nextData: any): string[] {
+type PoeAttachment = {
+  url?: string;
+  file?: {
+    url?: string;
+  };
+};
+
+type PoeMessage = {
+  attachments?: PoeAttachment[];
+};
+
+type PoeNextData = {
+  props?: {
+    pageProps?: {
+      data?: {
+        mainQuery?: {
+          chatShare?: {
+            messages?: PoeMessage[];
+          };
+        };
+      };
+    };
+  };
+};
+
+function collectAttachmentUrls(nextData: PoeNextData): string[] {
   const messages = nextData?.props?.pageProps?.data?.mainQuery?.chatShare?.messages;
   if (!Array.isArray(messages)) return [];
 
@@ -53,11 +79,19 @@ function collectAttachmentUrls(nextData: any): string[] {
   return [...urls];
 }
 
+function isAllowedFileHost(hostname: string) {
+  const normalized = hostname.toLowerCase();
+  if (allowedFileHosts.has(normalized)) return true;
+  if (normalized.endsWith(".poecdn.net")) return true;
+  return false;
+}
+
 function normalizeFileUrl(rawUrl: string): string | null {
   try {
     const url = new URL(rawUrl);
     if (url.protocol !== "https:") return null;
-    if (url.hostname === "localhost" || url.hostname === "127.0.0.1") return null;
+    if (!isAllowedFileHost(url.hostname)) return null;
+    if (!url.pathname.startsWith("/base/image/")) return null;
     return url.toString();
   } catch {
     return null;
@@ -392,46 +426,6 @@ const server = serve({
         } catch (error) {
           const message = error instanceof Error ? error.message : "Unknown error";
           return Response.json({ error: `Zip failed: ${message}` }, { status: 502 });
-        }
-      },
-    },
-    "/api/file": {
-      async GET(req) {
-        const requestUrl = new URL(req.url);
-        const rawUrl = requestUrl.searchParams.get("url");
-        if (!rawUrl) {
-          return Response.json({ error: "Missing url parameter" }, { status: 400 });
-        }
-
-        const fileUrl = normalizeFileUrl(rawUrl);
-        if (!fileUrl) {
-          return Response.json({ error: "Invalid file URL" }, { status: 400 });
-        }
-
-        try {
-          const response = await fetch(fileUrl, {
-            headers: { "User-Agent": userAgent },
-          });
-
-          if (!response.ok) {
-            return Response.json(
-              { error: "Upstream error", status: response.status },
-              { status: 502 }
-            );
-          }
-
-          const headers = new Headers(response.headers);
-          if (!headers.has("Cache-Control")) {
-            headers.set("Cache-Control", "public, max-age=31536000, immutable");
-          }
-
-          return new Response(response.body, {
-            status: response.status,
-            headers,
-          });
-        } catch (error) {
-          const message = error instanceof Error ? error.message : "Unknown error";
-          return Response.json({ error: `File fetch failed: ${message}` }, { status: 502 });
         }
       },
     },
