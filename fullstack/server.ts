@@ -32,7 +32,10 @@ async function extractAttachmentUrls(
     },
   });
 
-  await rewriter.transform(new Response(stream)).arrayBuffer();
+  const rewritten = rewriter.transform(new Response(stream));
+  if (rewritten.body) {
+    await rewritten.body.pipeTo(new WritableStream<Uint8Array>({ write() {} }));
+  }
 
   if (!sawNextData) {
     return { urls: [], sawNextData: false };
@@ -43,6 +46,8 @@ async function extractAttachmentUrls(
     return { urls: collectAttachmentUrls(nextData), sawNextData: true };
   } catch {
     return { urls: [], sawNextData: true };
+  } finally {
+    nextDataPayload = "";
   }
 }
 
