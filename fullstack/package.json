@@ -5,5 +5,8 @@
   "private": true,
   "devDependencies": {
     "@types/bun": "latest"
+  },
+  "dependencies": {
+    "client-zip": "^2.5.0"
   }
 }

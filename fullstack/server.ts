@@ -2,6 +2,7 @@ import { serve } from "bun";
 import index from "./index.html";
 
 const allowedHosts = new Set(["poe.com", "www.poe.com"]);
+const allowedFileHosts = new Set(["poecdn.net"]);
 const userAgent =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36";
 const envPort = Bun.env.PORT;
