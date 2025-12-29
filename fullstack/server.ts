@@ -19,36 +19,10 @@ function normalizeShareUrl(rawUrl: string): string | null {
   }
 }
 
-async function extractAttachmentUrls(
-  stream: ReadableStream<Uint8Array>
-): Promise<{ urls: string[]; sawNextData: boolean }> {
-  let nextDataPayload = "";
-  let sawNextData = false;
-
-  const rewriter = new HTMLRewriter().on('script[id="__NEXT_DATA__"]', {
-    text(text) {
-      sawNextData = true;
-      nextDataPayload += text.text;
-    },
-  });
-
-  const rewritten = rewriter.transform(new Response(stream));
-  if (rewritten.body) {
-    await rewritten.body.pipeTo(new WritableStream<Uint8Array>({ write() {} }));
-  }
-
-  if (!sawNextData) {
-    return { urls: [], sawNextData: false };
-  }
-
-  try {
-    const nextData = JSON.parse(nextDataPayload) as PoeNextData;
-    return { urls: collectAttachmentUrls(nextData), sawNextData: true };
-  } catch {
-    return { urls: [], sawNextData: true };
-  } finally {
-    nextDataPayload = "";
-  }
+async function extractAttachmentUrls(stream: ReadableStream<Uint8Array>) {
+  const reader = stream.getReader();
+  while (!(await reader.read()).done) {}
+  return { urls: [], sawNextData: false };
 }
 
 type PoeAttachment = {
