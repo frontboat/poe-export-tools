@@ -10,6 +10,6 @@ await Bun.build({
   bytecode: true,
   define: {
     "process.env.NODE_ENV": JSON.stringify("production"),
-    VERSION: JSON.stringify("1.3.10"),
+    VERSION: JSON.stringify("1.3.11"),
   },
 });
