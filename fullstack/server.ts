@@ -1,5 +1,7 @@
 import { serve } from "bun";
+import { request as httpsRequest } from "node:https";
 import index from "./index.html";
+import type { Root } from "./types.ts";
 
 const allowedHosts = new Set(["poe.com", "www.poe.com"]);
 const userAgent =
@@ -19,108 +21,61 @@ function normalizeShareUrl(rawUrl: string): string | null {
   }
 }
 
-async function extractAttachmentUrls(
-  stream: ReadableStream<Uint8Array>
-): Promise<{ urls: string[]; sawNextData: boolean }> {
-  let nextDataPayload = "";
-  let sawNextData = false;
+function httpGet(url: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const req = httpsRequest(url, { headers: { "User-Agent": userAgent } }, (res) => {
+      if (res.statusCode !== 200) {
+        res.resume();
+        reject(new Error(`HTTP ${res.statusCode}`));
+        return;
+      }
 
-  const rewriter = new HTMLRewriter().on('script[id="__NEXT_DATA__"]', {
-    text(text) {
-      sawNextData = true;
-      nextDataPayload += text.text;
-    },
+      const chunks: Buffer[] = [];
+      res.on("data", (chunk) => chunks.push(chunk));
+      res.on("end", () => {
+        resolve(Buffer.concat(chunks).toString("utf-8"));
+      });
+      res.on("error", reject);
+    });
+
+    req.on("error", reject);
+    req.end();
   });
+}
 
-  const rewritten = rewriter.transform(new Response(stream));
-  if (rewritten.body) {
-    await rewritten.body.pipeTo(new WritableStream<Uint8Array>({ write() {} }));
+async function fetchShareUrls(shareUrl: string) {
+  let html: string;
+  try {
+    html = await httpGet(shareUrl);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    return { error: { error: `Upstream error: ${message}` }, urls: [] };
   }
 
-  if (!sawNextData) {
-    return { urls: [], sawNextData: false };
+  const startMarker = '<script id="__NEXT_DATA__" type="application/json">';
+  const startIdx = html.indexOf(startMarker);
+  if (startIdx === -1) {
+    return { error: { error: "Missing __NEXT_DATA__", status: 502 }, urls: [] };
   }
+
+  const jsonStart = startIdx + startMarker.length;
+  const jsonEnd = html.indexOf("</script>", jsonStart);
 
   try {
-    const nextData = JSON.parse(nextDataPayload) as PoeNextData;
-    return { urls: collectAttachmentUrls(nextData), sawNextData: true };
-  } catch {
-    return { urls: [], sawNextData: true };
-  } finally {
-    nextDataPayload = "";
-  }
-}
+    const nextData: Root = JSON.parse(html.slice(jsonStart, jsonEnd));
+    const messages = nextData.props.pageProps.data.mainQuery.chatShare.messages;
 
-type PoeAttachment = {
-  url?: string;
-  file?: {
-    url?: string;
-  };
-};
-
-type PoeMessage = {
-  attachments?: PoeAttachment[];
-};
-
-type PoeNextData = {
-  props?: {
-    pageProps?: {
-      data?: {
-        mainQuery?: {
-          chatShare?: {
-            messages?: PoeMessage[];
-          };
-        };
-      };
-    };
-  };
-};
-
-function collectAttachmentUrls(nextData: PoeNextData): string[] {
-  const messages = nextData?.props?.pageProps?.data?.mainQuery?.chatShare?.messages;
-  if (!Array.isArray(messages)) return [];
-  const urls = new Set<string>();
-  for (const message of messages) {
-    const attachments = message?.attachments;
-    if (!Array.isArray(attachments)) continue;
-    for (const attachment of attachments) {
-      const url = attachment?.file?.url ?? attachment?.url;
-      if (typeof url === "string" && url.length > 0) {
-        urls.add(url);
+    const urls: string[] = [];
+    for (const msg of messages) {
+      for (const att of msg.attachments ?? []) {
+        if (att.file?.url) urls.push(att.file.url);
       }
     }
+
+    return { urls, error: null };
+  } catch {
+    return { error: { error: "Invalid JSON in __NEXT_DATA__", status: 502 }, urls: [] };
   }
-
-  return [...urls];
-}
-async function fetchShareUrls(shareUrl: string) {
-  const response = await fetch(shareUrl, {
-    headers: { "User-Agent": userAgent },
-  });
-
-  if (!response.ok) {
-    return {
-      error: { error: "Upstream error", status: response.status },
-      urls: [],
-    };
-  }
-
-  if (!response.body) {
-    return {
-      error: { error: "Missing response body", status: 502 },
-      urls: [],
-    };
-  }
-
-  const { urls, sawNextData } = await extractAttachmentUrls(response.body);
-  if (!sawNextData) {
-    return {
-      error: { error: "Missing __NEXT_DATA__ payload", status: 502 },
-      urls: [],
-    };
-  }
-
-  return { urls, error: null };
 }
 
 const server = serve({
