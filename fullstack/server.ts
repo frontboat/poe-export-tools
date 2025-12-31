@@ -1,4 +1,6 @@
-import { serve } from "bun";
+import { serve, embeddedFiles } from "bun";
+import { existsSync, readdirSync } from "node:fs";
+import { join, relative, sep } from "node:path";
 import index from "./index.html";
 
 const allowedHosts = new Set(["poe.com", "www.poe.com"]);
@@ -7,6 +9,56 @@ const userAgent =
 const envPort = Bun.env.PORT;
 const parsedPort = envPort ? Number.parseInt(envPort, 10) : NaN;
 const port = Number.isInteger(parsedPort) && parsedPort >= 0 ? parsedPort : 3000;
+
+function stripAssetHash(name: string) {
+  return name.replace(/-[a-f0-9]+\./, ".");
+}
+
+function listStaticFiles(dir: string): string[] {
+  const entries = readdirSync(dir, { withFileTypes: true });
+  const files: string[] = [];
+  for (const entry of entries) {
+    const fullPath = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...listStaticFiles(fullPath));
+      continue;
+    }
+    if (entry.isFile() && entry.name !== ".DS_Store") {
+      files.push(fullPath);
+    }
+  }
+  return files;
+}
+
+function addStaticRoute(routes: Record<string, Response>, route: string, body: Blob) {
+  if (!routes[route]) {
+    routes[route] = new Response(body);
+  }
+}
+
+// Build static routes from embedded files (compiled) + on-disk files (dev).
+const staticRoutes: Record<string, Response> = {};
+for (const blob of embeddedFiles) {
+  const nameWithHash = (blob as Blob & { name: string }).name.replace(/\\/g, "/");
+  const baseName = nameWithHash.split("/").pop() ?? nameWithHash;
+  const strippedBase = stripAssetHash(baseName);
+
+  addStaticRoute(staticRoutes, `/${baseName}`, blob);
+  addStaticRoute(staticRoutes, `/static/${strippedBase}`, blob);
+
+  if (nameWithHash.startsWith("static/")) {
+    const relativeName = nameWithHash.slice("static/".length);
+    addStaticRoute(staticRoutes, `/static/${stripAssetHash(relativeName)}`, blob);
+  }
+}
+
+const staticDir = join(import.meta.dir, "static");
+if (existsSync(staticDir)) {
+  for (const filePath of listStaticFiles(staticDir)) {
+    const relativePath = relative(staticDir, filePath).split(sep).join("/");
+    addStaticRoute(staticRoutes, `/static/${relativePath}`, Bun.file(filePath));
+  }
+}
 
 function normalizeShareUrl(rawUrl: string): string | null {
   try {
@@ -126,6 +178,7 @@ async function fetchShareUrls(shareUrl: string) {
 const server = serve({
   port,
   routes: {
+    ...staticRoutes,
     "/": index,
     "/api/share": {
       async GET(req) {
