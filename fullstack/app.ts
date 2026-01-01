@@ -6,11 +6,14 @@ const grid = document.querySelector<HTMLElement>("#grid");
 const chat = document.querySelector<HTMLElement>("#chat");
 const toggleButton = document.querySelector<HTMLButtonElement>("#toggle-chat");
 const downloadButton = document.querySelector<HTMLButtonElement>("#download-btn");
+const uploadButton = document.querySelector<HTMLButtonElement>("#upload-btn");
+const uploadInput = document.querySelector<HTMLInputElement>("#upload-input");
 
 const urls: string[] = [];
 let nextDataRaw: string | null = null;
 let chatMessages: ChatMessage[] = [];
 let isChatView = false;
+let isLoading = false;
 
 const videoExtensions = new Set(["mp4", "webm", "ogg", "mov", "m4v"]);
 
@@ -48,9 +51,9 @@ type ChatMessage = {
 };
 
 function setLoading(loading: boolean) {
+  isLoading = loading;
   if (input) input.disabled = loading;
-  if (downloadButton) downloadButton.disabled = loading || urls.length === 0;
-  if (toggleButton) toggleButton.disabled = loading || chatMessages.length === 0;
+  updateActionButtons();
 }
 
 function clearGrid() {
@@ -102,6 +105,21 @@ function createMediaAnchor(url: string, className: string, index?: number) {
 
   anchor.appendChild(preview);
   return anchor;
+}
+
+function updateActionButtons() {
+  const hasDownloads = urls.length > 0;
+  if (downloadButton) {
+    downloadButton.classList.toggle("is-hidden", !hasDownloads);
+    downloadButton.disabled = isLoading || !hasDownloads;
+  }
+  if (uploadButton) {
+    uploadButton.classList.toggle("is-hidden", hasDownloads);
+    uploadButton.disabled = isLoading;
+  }
+  if (toggleButton) {
+    toggleButton.disabled = isLoading || chatMessages.length === 0;
+  }
 }
 
 function renderUrls(list: string[]) {
@@ -159,6 +177,30 @@ function renderChat(messages: ChatMessage[]) {
   });
 
   chat.appendChild(fragment);
+}
+
+function applyNextData(raw: string | null, fallbackUrls: string[] = []) {
+  nextDataRaw = raw;
+  chatMessages = parseChatMessages(raw);
+  urls.length = 0;
+  const seen = new Set<string>();
+  for (const message of chatMessages) {
+    for (const url of message.attachments) {
+      if (!seen.has(url)) {
+        seen.add(url);
+        urls.push(url);
+      }
+    }
+  }
+  if (urls.length === 0 && fallbackUrls.length > 0) {
+    urls.push(...fallbackUrls);
+  }
+
+  renderUrls(urls);
+  renderChat(chatMessages);
+  const nextView = isChatView && chatMessages.length > 0 ? "chat" : "grid";
+  setViewMode(nextView);
+  updateActionButtons();
 }
 
 function parseChatMessages(raw: string | null): ChatMessage[] {
@@ -249,7 +291,6 @@ async function fetchShare() {
   urls.length = 0;
   nextDataRaw = null;
   chatMessages = [];
-  if (downloadButton) downloadButton.disabled = true;
   clearGrid();
   clearChat();
   setLoading(true);
@@ -261,20 +302,9 @@ async function fetchShare() {
       return;
     }
 
-    urls.length = 0;
-    if (Array.isArray(data?.urls)) {
-      urls.push(...data.urls);
-    }
-    if (typeof data?.nextData === "string") {
-      nextDataRaw = data.nextData;
-    }
-
-    chatMessages = parseChatMessages(nextDataRaw);
-    renderUrls(urls);
-    renderChat(chatMessages);
-    const nextView = isChatView && chatMessages.length > 0 ? "chat" : "grid";
-    setViewMode(nextView);
-    if (downloadButton) downloadButton.disabled = urls.length === 0;
+    const fallbackUrls = Array.isArray(data?.urls) ? data.urls : [];
+    const raw = typeof data?.nextData === "string" ? data.nextData : null;
+    applyNextData(raw, fallbackUrls);
     const url = new URL(window.location.href);
     url.searchParams.set("url", shareUrl);
     window.history.replaceState({}, "", url.toString());
@@ -342,6 +372,26 @@ toggleButton?.addEventListener("click", () => {
   setViewMode(isChatView ? "grid" : "chat");
 });
 
+uploadButton?.addEventListener("click", () => {
+  if (uploadButton?.disabled) return;
+  uploadInput?.click();
+});
+
+uploadInput?.addEventListener("change", () => {
+  const file = uploadInput.files?.[0];
+  if (!file) return;
+  void (async () => {
+    setLoading(true);
+    try {
+      const text = await file.text();
+      applyNextData(text);
+    } finally {
+      setLoading(false);
+      uploadInput.value = "";
+    }
+  })();
+});
+
 const params = new URLSearchParams(window.location.search);
 const initialUrl = params.get("url");
 if (initialUrl && input) {
@@ -349,12 +399,5 @@ if (initialUrl && input) {
   void fetchShare();
 }
 
-if (downloadButton) {
-  downloadButton.disabled = true;
-}
-
-if (toggleButton) {
-  toggleButton.disabled = true;
-}
-
 setViewMode("grid");
+updateActionButtons();

@@ -99,6 +99,10 @@ body::before {
   cursor: not-allowed;
 }
 
+.file-input {
+  display: none;
+}
+
 .prompt-input {
   display: block;
   width: 100%;
