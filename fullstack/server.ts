@@ -73,7 +73,7 @@ function normalizeShareUrl(rawUrl: string): string | null {
 
 async function extractAttachmentUrls(
   stream: ReadableStream<Uint8Array>
-): Promise<{ urls: string[]; sawNextData: boolean }> {
+): Promise<{ urls: string[]; sawNextData: boolean; nextDataRaw: string | null }> {
   let nextDataPayload = "";
   let sawNextData = false;
 
@@ -90,14 +90,18 @@ async function extractAttachmentUrls(
   }
 
   if (!sawNextData) {
-    return { urls: [], sawNextData: false };
+    return { urls: [], sawNextData: false, nextDataRaw: null };
   }
 
   try {
     const nextData = JSON.parse(nextDataPayload) as PoeNextData;
-    return { urls: collectAttachmentUrls(nextData), sawNextData: true };
+    return {
+      urls: collectAttachmentUrls(nextData),
+      sawNextData: true,
+      nextDataRaw: nextDataPayload,
+    };
   } catch {
-    return { urls: [], sawNextData: true };
+    return { urls: [], sawNextData: true, nextDataRaw: nextDataPayload };
   } finally {
     nextDataPayload = "";
   }
@@ -164,18 +168,20 @@ async function fetchShareUrls(shareUrl: string) {
     return {
       error: { error: "Missing response body", status: 502 },
       urls: [],
+      nextDataRaw: null,
     };
   }
 
-  const { urls, sawNextData } = await extractAttachmentUrls(response.body);
+  const { urls, sawNextData, nextDataRaw } = await extractAttachmentUrls(response.body);
   if (!sawNextData) {
     return {
       error: { error: "Missing __NEXT_DATA__ payload", status: 502 },
       urls: [],
+      nextDataRaw: null,
     };
   }
 
-  return { urls, error: null };
+  return { urls, nextDataRaw, error: null };
 }
 
 const server = serve({
@@ -202,7 +208,7 @@ const server = serve({
             return Response.json(result.error, { status: 502 });
           }
 
-          return Response.json({ urls: result.urls });
+          return Response.json({ urls: result.urls, nextData: result.nextDataRaw });
         } catch (error) {
           const message = error instanceof Error ? error.message : "Unknown error";
           return Response.json({ error: `Fetch failed: ${message}` }, { status: 502 });
