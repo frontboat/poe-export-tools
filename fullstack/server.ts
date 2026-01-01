@@ -147,7 +147,10 @@ function collectAttachmentUrls(nextData: PoeNextData): string[] {
 }
 async function fetchShareUrls(shareUrl: string) {
   const response = await fetch(shareUrl, {
-    headers: { "User-Agent": userAgent },
+    headers: { 
+      "User-Agent": userAgent,
+      "Connection": "close"
+     },
   });
 
   if (!response.ok) {
