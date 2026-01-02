@@ -90,6 +90,21 @@ function setError(message: string | null) {
   }
 }
 
+function normalizeShareUrl(rawUrl: string): string | null {
+  try {
+    const url = new URL(rawUrl);
+    if (url.protocol !== "https:") return null;
+    if (url.username || url.password) return null;
+    if (url.hostname !== "poe.com") return null;
+    if (url.search || url.hash) return null;
+    const match = url.pathname.match(/^\/s\/[^/]+$/);
+    if (!match) return null;
+    return `https://poe.com${url.pathname}`;
+  } catch {
+    return null;
+  }
+}
+
 function clearGrid() {
   if (grid) grid.textContent = "";
 }
@@ -391,6 +406,13 @@ async function fetchShare() {
     return;
   }
 
+  const normalized = normalizeShareUrl(shareUrl);
+  if (!normalized) {
+    setError("Invalid share URL. Expected https://poe.com/s/<share-id>.");
+    return;
+  }
+
+  if (input) input.value = normalized;
   setError(null);
   urls.length = 0;
   nextDataRaw = null;
@@ -399,7 +421,7 @@ async function fetchShare() {
   clearChat();
   setLoading(true);
   try {
-    const response = await fetch(`/api/share?url=${encodeURIComponent(shareUrl)}`);
+    const response = await fetch(`/api/share?url=${encodeURIComponent(normalized)}`);
     let data: unknown = null;
     try {
       data = await response.json();
@@ -423,7 +445,7 @@ async function fetchShare() {
       typeof payload?.nextData === "string" ? (payload.nextData as string) : null;
     applyNextData(raw, fallbackUrls);
     const url = new URL(window.location.href);
-    url.searchParams.set("url", shareUrl);
+    url.searchParams.set("url", normalized);
     window.history.replaceState({}, "", url.toString());
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
@@ -486,6 +508,7 @@ form?.addEventListener("submit", (event) => {
 });
 
 input?.addEventListener("input", () => {
+  setError(null);
   updateHeaderState();
 });
 

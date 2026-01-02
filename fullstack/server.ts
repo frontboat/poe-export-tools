@@ -3,7 +3,7 @@ import { existsSync, readdirSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import index from "./index.html";
 
-const allowedHosts = new Set(["poe.com", "www.poe.com"]);
+const allowedHost = "poe.com";
 const userAgent =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36";
 const envPort = Bun.env.PORT;
@@ -63,9 +63,13 @@ if (existsSync(staticDir)) {
 function normalizeShareUrl(rawUrl: string): string | null {
   try {
     const url = new URL(rawUrl);
-    if (!allowedHosts.has(url.hostname)) return null;
-    if (!url.pathname.startsWith("/s/")) return null;
-    return url.toString();
+    if (url.protocol !== "https:") return null;
+    if (url.username || url.password) return null;
+    if (url.hostname !== allowedHost) return null;
+    if (url.search || url.hash) return null;
+    const match = url.pathname.match(/^\/s\/[^/]+$/);
+    if (!match) return null;
+    return `https://${allowedHost}${url.pathname}`;
   } catch {
     return null;
   }
@@ -225,7 +229,10 @@ const server = serve({
 
         const shareUrl = normalizeShareUrl(rawUrl);
         if (!shareUrl) {
-          return Response.json({ error: "Invalid share URL" }, { status: 400 });
+          return Response.json(
+            { error: "Invalid share URL. Expected https://poe.com/s/<share-id>." },
+            { status: 400 }
+          );
         }
 
         try {
