@@ -73,7 +73,12 @@ function normalizeShareUrl(rawUrl: string): string | null {
 
 async function extractAttachmentUrls(
   stream: ReadableStream<Uint8Array>
-): Promise<{ urls: string[]; sawNextData: boolean; nextDataRaw: string | null }> {
+): Promise<{
+  urls: string[];
+  sawNextData: boolean;
+  nextDataRaw: string | null;
+  parseError: string | null;
+}> {
   let nextDataPayload = "";
   let sawNextData = false;
 
@@ -90,7 +95,7 @@ async function extractAttachmentUrls(
   }
 
   if (!sawNextData) {
-    return { urls: [], sawNextData: false, nextDataRaw: null };
+    return { urls: [], sawNextData: false, nextDataRaw: null, parseError: null };
   }
 
   try {
@@ -99,9 +104,16 @@ async function extractAttachmentUrls(
       urls: collectAttachmentUrls(nextData),
       sawNextData: true,
       nextDataRaw: nextDataPayload,
+      parseError: null,
     };
-  } catch {
-    return { urls: [], sawNextData: true, nextDataRaw: nextDataPayload };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Invalid JSON";
+    return {
+      urls: [],
+      sawNextData: true,
+      nextDataRaw: nextDataPayload,
+      parseError: message,
+    };
   } finally {
     nextDataPayload = "";
   }
@@ -158,9 +170,12 @@ async function fetchShareUrls(shareUrl: string) {
   });
 
   if (!response.ok) {
+    const error =
+      response.status === 404 ? "Share not found" : "Upstream error";
     return {
-      error: { error: "Upstream error", status: response.status },
+      error: { error, status: response.status },
       urls: [],
+      nextDataRaw: null,
     };
   }
 
@@ -172,10 +187,21 @@ async function fetchShareUrls(shareUrl: string) {
     };
   }
 
-  const { urls, sawNextData, nextDataRaw } = await extractAttachmentUrls(response.body);
+  const { urls, sawNextData, nextDataRaw, parseError } = await extractAttachmentUrls(
+    response.body
+  );
   if (!sawNextData) {
     return {
       error: { error: "Missing __NEXT_DATA__ payload", status: 502 },
+      urls: [],
+      nextDataRaw: null,
+    };
+  }
+
+  if (parseError) {
+    console.warn("Failed to parse __NEXT_DATA__ payload", parseError);
+    return {
+      error: { error: "Invalid __NEXT_DATA__ payload", status: 502 },
       urls: [],
       nextDataRaw: null,
     };
@@ -205,7 +231,13 @@ const server = serve({
         try {
           const result = await fetchShareUrls(shareUrl);
           if (result.error) {
-            return Response.json(result.error, { status: 502 });
+            const status =
+              Number.isInteger(result.error.status) &&
+              result.error.status >= 400 &&
+              result.error.status <= 599
+                ? result.error.status
+                : 502;
+            return Response.json(result.error, { status });
           }
 
           return Response.json({ urls: result.urls, nextData: result.nextDataRaw });

@@ -11,6 +11,7 @@ const menuDownload = document.querySelector<HTMLButtonElement>("#menu-download")
 const menuUpload = document.querySelector<HTMLButtonElement>("#menu-upload");
 const menuToggle = document.querySelector<HTMLButtonElement>("#menu-toggle");
 const uploadInput = document.querySelector<HTMLInputElement>("#upload-input");
+const notice = document.querySelector<HTMLElement>("#notice");
 
 const urls: string[] = [];
 let nextDataRaw: string | null = null;
@@ -67,10 +68,26 @@ type ChatMessage = {
   attachments: string[];
 };
 
+type ChatParseResult = {
+  messages: ChatMessage[];
+  error: string | null;
+};
+
 function setLoading(loading: boolean) {
   isLoading = loading;
   if (input) input.disabled = loading;
   updateHeaderState();
+}
+
+function setError(message: string | null) {
+  if (!notice) return;
+  if (message) {
+    notice.textContent = message;
+    notice.classList.remove("is-hidden");
+  } else {
+    notice.textContent = "";
+    notice.classList.add("is-hidden");
+  }
 }
 
 function clearGrid() {
@@ -108,7 +125,7 @@ function setMenuOpen(open: boolean) {
 }
 
 function hasContent() {
-  return urls.length > 0 || chatMessages.length > 0;
+  return urls.length > 0 || chatMessages.length > 0 || Boolean(nextDataRaw);
 }
 
 function updateHeaderState() {
@@ -152,7 +169,7 @@ function updateHeaderState() {
   }
 
   if (menuDownload) {
-    menuDownload.disabled = isLoading || urls.length === 0;
+    menuDownload.disabled = isLoading || (urls.length === 0 && !nextDataRaw);
   }
   if (menuUpload) {
     menuUpload.disabled = isLoading;
@@ -256,7 +273,8 @@ function renderChat(messages: ChatMessage[]) {
 
 function applyNextData(raw: string | null, fallbackUrls: string[] = []) {
   nextDataRaw = raw;
-  chatMessages = parseChatMessages(raw);
+  const parsed = parseChatMessages(raw);
+  chatMessages = parsed.messages;
   urls.length = 0;
   const seen = new Set<string>();
   for (const message of chatMessages) {
@@ -273,18 +291,29 @@ function applyNextData(raw: string | null, fallbackUrls: string[] = []) {
 
   renderUrls(urls);
   renderChat(chatMessages);
+  setError(parsed.error);
   const nextView = isChatView && chatMessages.length > 0 ? "chat" : "grid";
   setMenuOpen(false);
   setViewMode(nextView);
 }
 
-function parseChatMessages(raw: string | null): ChatMessage[] {
-  if (!raw) return [];
+function parseChatMessages(raw: string | null): ChatParseResult {
+  if (!raw) return { messages: [], error: null };
+  let data: PoeNextData;
   try {
-    const data = JSON.parse(raw) as PoeNextData;
-    const messages = data?.props?.pageProps?.data?.mainQuery?.chatShare?.messages;
-    if (!Array.isArray(messages)) return [];
-    return messages.map((message) => {
+    data = JSON.parse(raw) as PoeNextData;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Invalid JSON";
+    return { messages: [], error: `Invalid next-data.json payload: ${message}` };
+  }
+
+  const messages = data?.props?.pageProps?.data?.mainQuery?.chatShare?.messages;
+  if (!Array.isArray(messages)) {
+    return { messages: [], error: "Chat data missing from next-data.json." };
+  }
+
+  return {
+    messages: messages.map((message) => {
       const attachments: string[] = [];
       if (Array.isArray(message?.attachments)) {
         const seen = new Set<string>();
@@ -302,10 +331,9 @@ function parseChatMessages(raw: string | null): ChatMessage[] {
         text: typeof message?.text === "string" ? message.text : "",
         attachments,
       };
-    });
-  } catch {
-    return [];
-  }
+    }),
+    error: null,
+  };
 }
 
 function formatGalleryZipName(date: Date) {
@@ -363,6 +391,7 @@ async function fetchShare() {
     return;
   }
 
+  setError(null);
   urls.length = 0;
   nextDataRaw = null;
   chatMessages = [];
@@ -371,26 +400,41 @@ async function fetchShare() {
   setLoading(true);
   try {
     const response = await fetch(`/api/share?url=${encodeURIComponent(shareUrl)}`);
-    const data = await response.json();
+    let data: unknown = null;
+    try {
+      data = await response.json();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      setError(`Failed to read server response: ${message}`);
+      return;
+    }
+    const payload = data as { urls?: unknown; nextData?: unknown; error?: unknown };
 
     if (!response.ok) {
+      const message = typeof payload?.error === "string" ? payload.error : "Request failed.";
+      setError(message);
       return;
     }
 
-    const fallbackUrls = Array.isArray(data?.urls) ? data.urls : [];
-    const raw = typeof data?.nextData === "string" ? data.nextData : null;
+    const fallbackUrls = Array.isArray(payload?.urls)
+      ? (payload.urls as string[])
+      : [];
+    const raw =
+      typeof payload?.nextData === "string" ? (payload.nextData as string) : null;
     applyNextData(raw, fallbackUrls);
     const url = new URL(window.location.href);
     url.searchParams.set("url", shareUrl);
     window.history.replaceState({}, "", url.toString());
   } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    setError(`Request failed: ${message}`);
   } finally {
     setLoading(false);
   }
 }
 
 async function downloadAll() {
-  if (urls.length === 0) return;
+  if (urls.length === 0 && !nextDataRaw) return;
   if (menuDownload) menuDownload.disabled = true;
   const filename = formatGalleryZipName(new Date());
 
@@ -428,6 +472,9 @@ async function downloadAll() {
     link.click();
     link.remove();
     URL.revokeObjectURL(blobUrl);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    setError(`Download failed: ${message}`);
   } finally {
     if (menuDownload) menuDownload.disabled = false;
   }
@@ -450,6 +497,7 @@ leftButton?.addEventListener("click", () => {
     chatMessages = [];
     clearGrid();
     clearChat();
+    setError(null);
     if (input) input.value = "";
     const url = new URL(window.location.href);
     url.searchParams.delete("url");
@@ -475,12 +523,15 @@ rightButton?.addEventListener("click", () => {
   void (async () => {
     try {
       if (!navigator.clipboard?.readText) {
+        setError("Clipboard access unavailable. Paste the URL manually.");
         if (input) input.focus();
         return;
       }
+      setError(null);
       const text = await navigator.clipboard.readText();
       if (input) input.value = text.trim();
     } catch {
+      setError("Clipboard access blocked. Paste the URL manually.");
       if (input) input.focus();
     } finally {
       updateHeaderState();
@@ -511,6 +562,7 @@ uploadInput?.addEventListener("change", () => {
   if (!file) return;
   void (async () => {
     setLoading(true);
+    setError(null);
     try {
       const text = await file.text();
       if (input) input.value = "";
@@ -518,6 +570,9 @@ uploadInput?.addEventListener("change", () => {
       const url = new URL(window.location.href);
       url.searchParams.delete("url");
       window.history.replaceState({}, "", url.toString());
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      setError(`Failed to read file: ${message}`);
     } finally {
       setLoading(false);
       uploadInput.value = "";
