@@ -67,6 +67,28 @@ body::before {
   flex: 1;
 }
 
+.menu-anchor {
+  position: relative;
+}
+
+.action-menu {
+  position: absolute;
+  top: calc(100% + var(--space-1));
+  right: 0;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-2);
+  display: grid;
+  gap: var(--space-2);
+  z-index: 10;
+}
+
+.menu-button {
+  width: 42px;
+  height: 42px;
+}
+
 .icon-button {
   display: inline-flex;
   align-items: center;
@@ -180,6 +202,8 @@ body::before {
   white-space: pre-wrap;
   font-size: 0.85rem;
   line-height: 1.5;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .chat-media {
@@ -258,15 +282,7 @@ body::before {
 
 @media (max-width: 900px) {
   .top-bar {
-    flex-direction: column;
-  }
-
-  .top-bar {
-    align-items: stretch;
-  }
-
-  .icon-button {
-    width: 100%;
+    gap: var(--space-1);
   }
 }
 

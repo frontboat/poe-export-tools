@@ -31,26 +31,11 @@
   <body>
     <header class="top-bar">
       <button
-        id="toggle-chat"
+        id="left-action"
         class="icon-button"
         type="button"
-        aria-label="Toggle chat view"
-        aria-pressed="false"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z" />
-        </svg>
-      </button>
+        aria-label="Upload next-data.json"
+      ></button>
       <form id="share-form" class="share-form" autocomplete="off">
         <input
           id="share-url"
@@ -61,51 +46,88 @@
           aria-label="Poe share url"
         />
       </form>
-      <button
-        id="download-btn"
-        class="icon-button"
-        type="button"
-        aria-label="Download zip"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
+      <div class="menu-anchor">
+        <button
+          id="right-action"
+          class="icon-button"
+          type="button"
+          aria-label="Paste share URL"
         >
-          <path d="M12 15V3" />
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-          <path d="m7 10 5 5 5-5" />
-        </svg>
-      </button>
-      <button
-        id="upload-btn"
-        class="icon-button is-hidden"
-        type="button"
-        aria-label="Upload next-data.json"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          class="lucide lucide-upload-icon lucide-upload"
-        >
-          <path d="M12 3v12" />
-          <path d="m17 8-5-5-5 5" />
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-        </svg>
-      </button>
+        </button>
+        <div id="action-menu" class="action-menu is-hidden" role="menu" aria-label="More actions">
+          <button
+            id="menu-download"
+            class="icon-button menu-button"
+            type="button"
+            aria-label="Download zip"
+            role="menuitem"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M12 15V3" />
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <path d="m7 10 5 5 5-5" />
+            </svg>
+          </button>
+          <button
+            id="menu-upload"
+            class="icon-button menu-button"
+            type="button"
+            aria-label="Upload next-data.json"
+            role="menuitem"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="lucide lucide-upload-icon lucide-upload"
+            >
+              <path d="M12 3v12" />
+              <path d="m17 8-5-5-5 5" />
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            </svg>
+          </button>
+          <button
+            id="menu-toggle"
+            class="icon-button menu-button"
+            type="button"
+            aria-label="Toggle chat view"
+            aria-pressed="false"
+            role="menuitem"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path
+                d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"
+              />
+            </svg>
+          </button>
+        </div>
+      </div>
     </header>
     <main class="container">
       <div id="chat" class="chat-view is-hidden"></div>

@@ -4,9 +4,12 @@ const form = document.querySelector<HTMLFormElement>("#share-form");
 const input = document.querySelector<HTMLInputElement>("#share-url");
 const grid = document.querySelector<HTMLElement>("#grid");
 const chat = document.querySelector<HTMLElement>("#chat");
-const toggleButton = document.querySelector<HTMLButtonElement>("#toggle-chat");
-const downloadButton = document.querySelector<HTMLButtonElement>("#download-btn");
-const uploadButton = document.querySelector<HTMLButtonElement>("#upload-btn");
+const leftButton = document.querySelector<HTMLButtonElement>("#left-action");
+const rightButton = document.querySelector<HTMLButtonElement>("#right-action");
+const actionMenu = document.querySelector<HTMLElement>("#action-menu");
+const menuDownload = document.querySelector<HTMLButtonElement>("#menu-download");
+const menuUpload = document.querySelector<HTMLButtonElement>("#menu-upload");
+const menuToggle = document.querySelector<HTMLButtonElement>("#menu-toggle");
 const uploadInput = document.querySelector<HTMLInputElement>("#upload-input");
 
 const urls: string[] = [];
@@ -14,8 +17,22 @@ let nextDataRaw: string | null = null;
 let chatMessages: ChatMessage[] = [];
 let isChatView = false;
 let isLoading = false;
+let isMenuOpen = false;
 
 const videoExtensions = new Set(["mp4", "webm", "ogg", "mov", "m4v"]);
+
+const icons = {
+  upload:
+    '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-upload-icon lucide-upload"><path d="M12 3v12"/><path d="m17 8-5-5-5 5"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></svg>',
+  home:
+    '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-house-icon lucide-house"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>',
+  paste:
+    '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clipboard-paste-icon lucide-clipboard-paste"><path d="M11 14h10"/><path d="M16 4h2a2 2 0 0 1 2 2v1.344"/><path d="m17 18 4-4-4-4"/><path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 1.793-1.113"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>',
+  enter:
+    '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-right-icon lucide-arrow-right"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>',
+  ellipsis:
+    '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-ellipsis-vertical-icon lucide-ellipsis-vertical"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>',
+};
 
 type PoeAttachment = {
   url?: string;
@@ -53,7 +70,7 @@ type ChatMessage = {
 function setLoading(loading: boolean) {
   isLoading = loading;
   if (input) input.disabled = loading;
-  updateActionButtons();
+  updateHeaderState();
 }
 
 function clearGrid() {
@@ -68,9 +85,82 @@ function setViewMode(view: "grid" | "chat") {
   isChatView = view === "chat";
   if (grid) grid.classList.toggle("is-hidden", isChatView);
   if (chat) chat.classList.toggle("is-hidden", !isChatView);
-  if (toggleButton) {
-    toggleButton.setAttribute("aria-pressed", isChatView ? "true" : "false");
-    toggleButton.dataset.active = isChatView ? "true" : "false";
+  updateHeaderState();
+}
+
+function setButtonIcon(
+  button: HTMLButtonElement | null,
+  icon: string,
+  label: string,
+  key: string
+) {
+  if (!button) return;
+  if (button.dataset.icon !== key) {
+    button.innerHTML = icon;
+    button.dataset.icon = key;
+  }
+  button.setAttribute("aria-label", label);
+}
+
+function setMenuOpen(open: boolean) {
+  isMenuOpen = open;
+  updateHeaderState();
+}
+
+function hasContent() {
+  return urls.length > 0 || chatMessages.length > 0;
+}
+
+function updateHeaderState() {
+  const showContent = hasContent();
+  const trimmed = input?.value.trim() ?? "";
+  if (!showContent && isMenuOpen) {
+    isMenuOpen = false;
+  }
+
+  setButtonIcon(
+    leftButton,
+    showContent ? icons.home : icons.upload,
+    showContent ? "Home" : "Upload next-data.json",
+    showContent ? "home" : "upload"
+  );
+  if (leftButton) leftButton.disabled = isLoading;
+
+  if (showContent) {
+    setButtonIcon(rightButton, icons.ellipsis, "More actions", "ellipsis");
+    if (rightButton) {
+      rightButton.setAttribute("aria-expanded", isMenuOpen ? "true" : "false");
+      rightButton.setAttribute("aria-haspopup", "menu");
+    }
+  } else {
+    const showEnter = trimmed.length > 0;
+    setButtonIcon(
+      rightButton,
+      showEnter ? icons.enter : icons.paste,
+      showEnter ? "Fetch share URL" : "Paste share URL",
+      showEnter ? "enter" : "paste"
+    );
+    if (rightButton) {
+      rightButton.removeAttribute("aria-expanded");
+      rightButton.removeAttribute("aria-haspopup");
+    }
+  }
+  if (rightButton) rightButton.disabled = isLoading;
+
+  if (actionMenu) {
+    actionMenu.classList.toggle("is-hidden", !showContent || !isMenuOpen);
+  }
+
+  if (menuDownload) {
+    menuDownload.disabled = isLoading || urls.length === 0;
+  }
+  if (menuUpload) {
+    menuUpload.disabled = isLoading;
+  }
+  if (menuToggle) {
+    menuToggle.disabled = isLoading || chatMessages.length === 0;
+    menuToggle.setAttribute("aria-pressed", isChatView ? "true" : "false");
+    menuToggle.dataset.active = isChatView ? "true" : "false";
   }
 }
 
@@ -105,21 +195,6 @@ function createMediaAnchor(url: string, className: string, index?: number) {
 
   anchor.appendChild(preview);
   return anchor;
-}
-
-function updateActionButtons() {
-  const hasDownloads = urls.length > 0;
-  if (downloadButton) {
-    downloadButton.classList.toggle("is-hidden", !hasDownloads);
-    downloadButton.disabled = isLoading || !hasDownloads;
-  }
-  if (uploadButton) {
-    uploadButton.classList.toggle("is-hidden", hasDownloads);
-    uploadButton.disabled = isLoading;
-  }
-  if (toggleButton) {
-    toggleButton.disabled = isLoading || chatMessages.length === 0;
-  }
 }
 
 function renderUrls(list: string[]) {
@@ -199,8 +274,8 @@ function applyNextData(raw: string | null, fallbackUrls: string[] = []) {
   renderUrls(urls);
   renderChat(chatMessages);
   const nextView = isChatView && chatMessages.length > 0 ? "chat" : "grid";
+  setMenuOpen(false);
   setViewMode(nextView);
-  updateActionButtons();
 }
 
 function parseChatMessages(raw: string | null): ChatMessage[] {
@@ -315,8 +390,8 @@ async function fetchShare() {
 }
 
 async function downloadAll() {
-  if (urls.length === 0 || !downloadButton) return;
-  downloadButton.disabled = true;
+  if (urls.length === 0) return;
+  if (menuDownload) menuDownload.disabled = true;
   const filename = formatGalleryZipName(new Date());
 
   try {
@@ -354,7 +429,7 @@ async function downloadAll() {
     link.remove();
     URL.revokeObjectURL(blobUrl);
   } finally {
-    downloadButton.disabled = false;
+    if (menuDownload) menuDownload.disabled = false;
   }
 }
 
@@ -363,18 +438,72 @@ form?.addEventListener("submit", (event) => {
   void fetchShare();
 });
 
-downloadButton?.addEventListener("click", () => {
+input?.addEventListener("input", () => {
+  updateHeaderState();
+});
+
+leftButton?.addEventListener("click", () => {
+  if (leftButton?.disabled) return;
+  if (hasContent()) {
+    urls.length = 0;
+    nextDataRaw = null;
+    chatMessages = [];
+    clearGrid();
+    clearChat();
+    if (input) input.value = "";
+    const url = new URL(window.location.href);
+    url.searchParams.delete("url");
+    window.history.replaceState({}, "", url.toString());
+    setMenuOpen(false);
+    setViewMode("grid");
+    return;
+  }
+  uploadInput?.click();
+});
+
+rightButton?.addEventListener("click", () => {
+  if (rightButton?.disabled) return;
+  if (hasContent()) {
+    setMenuOpen(!isMenuOpen);
+    return;
+  }
+  const trimmed = input?.value.trim() ?? "";
+  if (trimmed.length > 0) {
+    void fetchShare();
+    return;
+  }
+  void (async () => {
+    try {
+      if (!navigator.clipboard?.readText) {
+        if (input) input.focus();
+        return;
+      }
+      const text = await navigator.clipboard.readText();
+      if (input) input.value = text.trim();
+    } catch {
+      if (input) input.focus();
+    } finally {
+      updateHeaderState();
+    }
+  })();
+});
+
+menuDownload?.addEventListener("click", () => {
+  if (menuDownload?.disabled) return;
+  setMenuOpen(false);
   void downloadAll();
 });
 
-toggleButton?.addEventListener("click", () => {
-  if (toggleButton?.disabled) return;
-  setViewMode(isChatView ? "grid" : "chat");
+menuUpload?.addEventListener("click", () => {
+  if (menuUpload?.disabled) return;
+  setMenuOpen(false);
+  uploadInput?.click();
 });
 
-uploadButton?.addEventListener("click", () => {
-  if (uploadButton?.disabled) return;
-  uploadInput?.click();
+menuToggle?.addEventListener("click", () => {
+  if (menuToggle?.disabled) return;
+  setMenuOpen(false);
+  setViewMode(isChatView ? "grid" : "chat");
 });
 
 uploadInput?.addEventListener("change", () => {
@@ -384,12 +513,25 @@ uploadInput?.addEventListener("change", () => {
     setLoading(true);
     try {
       const text = await file.text();
+      if (input) input.value = "";
       applyNextData(text);
+      const url = new URL(window.location.href);
+      url.searchParams.delete("url");
+      window.history.replaceState({}, "", url.toString());
     } finally {
       setLoading(false);
       uploadInput.value = "";
     }
   })();
+});
+
+document.addEventListener("click", (event) => {
+  if (!isMenuOpen) return;
+  const target = event.target as Node;
+  if (actionMenu?.contains(target) || rightButton?.contains(target)) {
+    return;
+  }
+  setMenuOpen(false);
 });
 
 const params = new URLSearchParams(window.location.search);
@@ -400,4 +542,3 @@ if (initialUrl && input) {
 }
 
 setViewMode("grid");
-updateActionButtons();
