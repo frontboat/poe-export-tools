@@ -1,0 +1,835 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Generated schema for Root",
+  "type": "object",
+  "properties": {
+    "props": {
+      "type": "object",
+      "properties": {
+        "pageProps": {
+          "type": "object",
+          "properties": {
+            "data": {
+              "type": "object",
+              "properties": {
+                "mainQuery": {
+                  "type": "object",
+                  "properties": {
+                    "chatShare": {
+                      "type": "object",
+                      "properties": {
+                        "chatBot": {
+                          "type": "object",
+                          "properties": {
+                            "deletionState": {
+                              "type": "string"
+                            },
+                            "displayName": {
+                              "type": "string"
+                            },
+                            "picture": {
+                              "type": "object",
+                              "properties": {
+                                "__typename": {
+                                  "type": "string"
+                                },
+                                "__isBotPicture": {
+                                  "type": "string"
+                                },
+                                "url": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "__typename",
+                                "__isBotPicture",
+                                "url"
+                              ]
+                            },
+                            "__isNode": {
+                              "type": "string"
+                            },
+                            "id": {
+                              "type": "string"
+                            },
+                            "handle": {
+                              "type": "string"
+                            },
+                            "nickname": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "deletionState",
+                            "displayName",
+                            "picture",
+                            "__isNode",
+                            "id",
+                            "handle",
+                            "nickname"
+                          ]
+                        },
+                        "shareCode": {
+                          "type": "string"
+                        },
+                        "creationTime": {
+                          "type": "number"
+                        },
+                        "membersCount": {
+                          "type": "number"
+                        },
+                        "shareId": {
+                          "type": "number"
+                        },
+                        "messages": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "didSkipContext": {
+                                "type": "boolean"
+                              },
+                              "creationTime": {
+                                "type": "number"
+                              },
+                              "messageId": {
+                                "type": "number"
+                              },
+                              "author": {
+                                "type": "string"
+                              },
+                              "isChatAnnouncement": {
+                                "type": "boolean"
+                              },
+                              "isEdited": {
+                                "type": "boolean"
+                              },
+                              "authorBot": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "botId": {
+                                    "type": "number"
+                                  },
+                                  "handle": {
+                                    "type": "string"
+                                  },
+                                  "introduction": {
+                                    "type": "string"
+                                  },
+                                  "nickname": {
+                                    "type": "string"
+                                  },
+                                  "viewerIsCreator": {
+                                    "type": "boolean"
+                                  },
+                                  "isTrustedBot": {
+                                    "type": "boolean"
+                                  },
+                                  "isPrivateBot": {
+                                    "type": "boolean"
+                                  },
+                                  "canvasContent": {},
+                                  "messageTimeoutSecs": {
+                                    "type": "number"
+                                  },
+                                  "allowsImageAttachments": {
+                                    "type": "boolean"
+                                  },
+                                  "isApiBot": {
+                                    "type": "boolean"
+                                  },
+                                  "limitedAccessType": {
+                                    "type": "string"
+                                  },
+                                  "shouldHideLimitedAccessTag": {
+                                    "type": "boolean"
+                                  },
+                                  "translatedBotTags": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "deletionState": {
+                                    "type": "string"
+                                  },
+                                  "displayName": {
+                                    "type": "string"
+                                  },
+                                  "picture": {
+                                    "type": "object",
+                                    "properties": {
+                                      "__typename": {
+                                        "type": "string"
+                                      },
+                                      "__isBotPicture": {
+                                        "type": "string"
+                                      },
+                                      "url": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "__typename",
+                                      "__isBotPicture",
+                                      "url"
+                                    ]
+                                  },
+                                  "__isNode": {
+                                    "type": "string"
+                                  },
+                                  "supportsRemix": {
+                                    "type": "boolean"
+                                  },
+                                  "isServerBot": {
+                                    "type": "boolean"
+                                  },
+                                  "supportsFileUpload": {
+                                    "type": "boolean"
+                                  },
+                                  "customUIDefinition": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "botId",
+                                  "handle",
+                                  "introduction",
+                                  "nickname",
+                                  "viewerIsCreator",
+                                  "isTrustedBot",
+                                  "isPrivateBot",
+                                  "canvasContent",
+                                  "messageTimeoutSecs",
+                                  "allowsImageAttachments",
+                                  "isApiBot",
+                                  "limitedAccessType",
+                                  "shouldHideLimitedAccessTag",
+                                  "translatedBotTags",
+                                  "deletionState",
+                                  "displayName",
+                                  "__isNode",
+                                  "supportsRemix",
+                                  "isServerBot",
+                                  "supportsFileUpload"
+                                ]
+                              },
+                              "isAuthorSharer": {
+                                "type": "boolean"
+                              },
+                              "authorUser": {
+                                "type": "object",
+                                "properties": {
+                                  "fullName": {
+                                    "type": "string"
+                                  },
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "uid": {
+                                    "type": "number"
+                                  },
+                                  "handle": {
+                                    "type": "string"
+                                  },
+                                  "viewerIsFollowing": {
+                                    "type": "boolean"
+                                  },
+                                  "isDeleted": {
+                                    "type": "boolean"
+                                  },
+                                  "smallProfilePhotoUrl": {
+                                    "type": "string"
+                                  },
+                                  "__isNode": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "fullName",
+                                  "id",
+                                  "uid",
+                                  "handle",
+                                  "viewerIsFollowing",
+                                  "isDeleted",
+                                  "smallProfilePhotoUrl",
+                                  "__isNode"
+                                ]
+                              },
+                              "command": {},
+                              "referencedMessage": {},
+                              "text": {
+                                "type": "string"
+                              },
+                              "attachments": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "__isAttachment": {
+                                      "type": "string"
+                                    },
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "isInline": {
+                                      "type": "boolean"
+                                    },
+                                    "file": {
+                                      "type": "object",
+                                      "properties": {
+                                        "mimeType": {
+                                          "type": "string"
+                                        },
+                                        "width": {
+                                          "type": "number"
+                                        },
+                                        "height": {
+                                          "type": "number"
+                                        },
+                                        "id": {
+                                          "type": "string"
+                                        },
+                                        "size": {
+                                          "type": "number"
+                                        },
+                                        "url": {
+                                          "type": "string"
+                                        },
+                                        "thumbnailUrl": {}
+                                      },
+                                      "required": [
+                                        "mimeType",
+                                        "width",
+                                        "height",
+                                        "id",
+                                        "size",
+                                        "url",
+                                        "thumbnailUrl"
+                                      ]
+                                    },
+                                    "name": {
+                                      "type": "string"
+                                    },
+                                    "url": {
+                                      "type": "string"
+                                    },
+                                    "attachmentId": {
+                                      "type": "number"
+                                    }
+                                  },
+                                  "required": [
+                                    "__isAttachment",
+                                    "id",
+                                    "isInline",
+                                    "file",
+                                    "name",
+                                    "url",
+                                    "attachmentId"
+                                  ]
+                                }
+                              },
+                              "__isNode": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "didSkipContext",
+                              "creationTime",
+                              "messageId",
+                              "author",
+                              "isChatAnnouncement",
+                              "isEdited",
+                              "authorBot",
+                              "isAuthorSharer",
+                              "command",
+                              "referencedMessage",
+                              "text",
+                              "attachments",
+                              "__isNode"
+                            ]
+                          }
+                        },
+                        "__isNode": {
+                          "type": "string"
+                        },
+                        "id": {
+                          "type": "string"
+                        },
+                        "hasMessagesFromMultipleUsers": {
+                          "type": "boolean"
+                        },
+                        "twittercardProperties": {
+                          "type": "string"
+                        },
+                        "opengraphProperties": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "chatBot",
+                        "shareCode",
+                        "creationTime",
+                        "membersCount",
+                        "shareId",
+                        "messages",
+                        "__isNode",
+                        "id",
+                        "hasMessagesFromMultipleUsers",
+                        "twittercardProperties",
+                        "opengraphProperties"
+                      ]
+                    },
+                    "viewer": {
+                      "type": "object",
+                      "properties": {
+                        "poeUser": {},
+                        "enableCanvasAppDebugMode": {
+                          "type": "boolean"
+                        },
+                        "canvasPreviewUrlOverride": {
+                          "type": "string"
+                        },
+                        "useInFrameCanvasServerRelay": {
+                          "type": "boolean"
+                        },
+                        "useStrictCsp": {
+                          "type": "boolean"
+                        },
+                        "markdownCharacterLimit": {
+                          "type": "number"
+                        },
+                        "botMarkdownCharacterLimit": {
+                          "type": "number"
+                        },
+                        "promptBotImageDomainWhitelist": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "enableScriptingCodeReference": {
+                          "type": "boolean"
+                        },
+                        "enableScriptBotCreation": {
+                          "type": "boolean"
+                        },
+                        "useMessageSendingIcon": {
+                          "type": "boolean"
+                        },
+                        "poeHideLeftSideMessageHeaderIfSameSender": {
+                          "type": "boolean"
+                        },
+                        "defaultBot": {},
+                        "showTimestampAndDatePill": {
+                          "type": "boolean"
+                        },
+                        "badgingEnabledProportion": {
+                          "type": "number"
+                        },
+                        "id": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "poeUser",
+                        "enableCanvasAppDebugMode",
+                        "canvasPreviewUrlOverride",
+                        "useInFrameCanvasServerRelay",
+                        "useStrictCsp",
+                        "markdownCharacterLimit",
+                        "botMarkdownCharacterLimit",
+                        "promptBotImageDomainWhitelist",
+                        "enableScriptingCodeReference",
+                        "enableScriptBotCreation",
+                        "useMessageSendingIcon",
+                        "poeHideLeftSideMessageHeaderIfSameSender",
+                        "defaultBot",
+                        "showTimestampAndDatePill",
+                        "badgingEnabledProportion",
+                        "id"
+                      ]
+                    },
+                    "supportedPreviewsContentTypes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "chatShare",
+                    "viewer",
+                    "supportedPreviewsContentTypes"
+                  ]
+                },
+                "blockerQuery": {
+                  "type": "object",
+                  "properties": {},
+                  "required": []
+                },
+                "leftNavigationSidebarQuery": {
+                  "type": "object",
+                  "properties": {
+                    "viewer": {
+                      "type": "object",
+                      "properties": {
+                        "uid": {},
+                        "shouldSeeRevshareEntryPoints": {
+                          "type": "boolean"
+                        },
+                        "revshareEnrollmentStatus": {
+                          "type": "string"
+                        },
+                        "hasActiveSubscription": {
+                          "type": "boolean"
+                        },
+                        "isEligibleForWebSubscriptions": {
+                          "type": "boolean"
+                        },
+                        "subscription": {},
+                        "poeUser": {},
+                        "apiConsoleEnabled": {
+                          "type": "boolean"
+                        },
+                        "shouldSeePrivacyChoicesLink": {
+                          "type": "boolean"
+                        },
+                        "id": {
+                          "type": "string"
+                        },
+                        "badgeInfo": {
+                          "type": "object",
+                          "properties": {
+                            "unseenChatInfos": {
+                              "type": "array",
+                              "items": {}
+                            }
+                          },
+                          "required": [
+                            "unseenChatInfos"
+                          ]
+                        },
+                        "badgingEnabledProportion": {
+                          "type": "number"
+                        },
+                        "poeWebEnableChatPinning": {
+                          "type": "boolean"
+                        },
+                        "poeWebEnableChatPinningVisibility": {
+                          "type": "boolean"
+                        },
+                        "poeWebEnableMarkChatAsRead": {
+                          "type": "boolean"
+                        },
+                        "badgingLogEnabled": {
+                          "type": "boolean"
+                        },
+                        "badgingDiscrepancyLoggingSamplingRate": {
+                          "type": "number"
+                        },
+                        "badgingDiscrepancyLoggingInterval": {
+                          "type": "number"
+                        },
+                        "badgingDiscrepancyLoggingInitialDelay": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "uid",
+                        "shouldSeeRevshareEntryPoints",
+                        "revshareEnrollmentStatus",
+                        "hasActiveSubscription",
+                        "isEligibleForWebSubscriptions",
+                        "subscription",
+                        "poeUser",
+                        "apiConsoleEnabled",
+                        "shouldSeePrivacyChoicesLink",
+                        "id",
+                        "badgeInfo",
+                        "badgingEnabledProportion",
+                        "poeWebEnableChatPinning",
+                        "poeWebEnableChatPinningVisibility",
+                        "poeWebEnableMarkChatAsRead",
+                        "badgingLogEnabled",
+                        "badgingDiscrepancyLoggingSamplingRate",
+                        "badgingDiscrepancyLoggingInterval",
+                        "badgingDiscrepancyLoggingInitialDelay"
+                      ]
+                    },
+                    "chats": {
+                      "type": "object",
+                      "properties": {
+                        "edges": {
+                          "type": "array",
+                          "items": {}
+                        },
+                        "pageInfo": {
+                          "type": "object",
+                          "properties": {
+                            "endCursor": {},
+                            "hasNextPage": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "endCursor",
+                            "hasNextPage"
+                          ]
+                        },
+                        "id": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "edges",
+                        "pageInfo",
+                        "id"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "viewer",
+                    "chats"
+                  ]
+                },
+                "pageWrapperQuery": {
+                  "type": "object",
+                  "properties": {
+                    "viewer": {
+                      "type": "object",
+                      "properties": {
+                        "hasCompletedMultiplayerNux": {
+                          "type": "boolean"
+                        },
+                        "uid": {},
+                        "id": {
+                          "type": "string"
+                        },
+                        "announcement": {},
+                        "messagePointInfo": {},
+                        "poeUser": {},
+                        "shouldOpenLinksInApp": {
+                          "type": "boolean"
+                        },
+                        "shouldIncludeGoogleTagManager": {
+                          "type": "boolean"
+                        },
+                        "badgeInfo": {
+                          "type": "object",
+                          "properties": {
+                            "unseenChatInfos": {
+                              "type": "array",
+                              "items": {}
+                            }
+                          },
+                          "required": [
+                            "unseenChatInfos"
+                          ]
+                        },
+                        "badgingEnabledProportion": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "hasCompletedMultiplayerNux",
+                        "uid",
+                        "id",
+                        "announcement",
+                        "messagePointInfo",
+                        "poeUser",
+                        "shouldOpenLinksInApp",
+                        "shouldIncludeGoogleTagManager",
+                        "badgeInfo",
+                        "badgingEnabledProportion"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "viewer"
+                  ]
+                }
+              },
+              "required": [
+                "mainQuery",
+                "blockerQuery",
+                "leftNavigationSidebarQuery",
+                "pageWrapperQuery"
+              ]
+            },
+            "errorCode": {},
+            "fetchPolicy": {
+              "type": "string"
+            },
+            "staticPage": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "data",
+            "errorCode",
+            "fetchPolicy",
+            "staticPage"
+          ]
+        },
+        "initialProps": {
+          "type": "object",
+          "properties": {
+            "menuSidebarPreference": {
+              "type": "number"
+            },
+            "userAgent": {
+              "type": "string"
+            },
+            "theme": {
+              "type": "string"
+            },
+            "soundNotificationsMuted": {
+              "type": "boolean"
+            },
+            "middlewareStart": {
+              "type": "number"
+            },
+            "middlewareEnd": {
+              "type": "number"
+            },
+            "i18nInstanceState": {
+              "type": "object",
+              "properties": {
+                "ns": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "lng": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "ns",
+                "lng"
+              ]
+            },
+            "tchannelData": {
+              "type": "object",
+              "properties": {
+                "minSeq": {
+                  "type": "string"
+                },
+                "channel": {
+                  "type": "string"
+                },
+                "channelHash": {
+                  "type": "string"
+                },
+                "boxName": {
+                  "type": "string"
+                },
+                "baseHost": {
+                  "type": "string"
+                },
+                "targetUrl": {
+                  "type": "string"
+                },
+                "enableWebsocket": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "minSeq",
+                "channel",
+                "channelHash",
+                "boxName",
+                "baseHost",
+                "targetUrl",
+                "enableWebsocket"
+              ]
+            }
+          },
+          "required": [
+            "menuSidebarPreference",
+            "userAgent",
+            "theme",
+            "soundNotificationsMuted",
+            "middlewareStart",
+            "middlewareEnd",
+            "i18nInstanceState",
+            "tchannelData"
+          ]
+        },
+        "getInitialPropsDuration": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "pageProps",
+        "initialProps",
+        "getInitialPropsDuration"
+      ]
+    },
+    "page": {
+      "type": "string"
+    },
+    "query": {
+      "type": "object",
+      "properties": {
+        "shareCode": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "shareCode"
+      ]
+    },
+    "buildId": {
+      "type": "string"
+    },
+    "assetPrefix": {
+      "type": "string"
+    },
+    "isFallback": {
+      "type": "boolean"
+    },
+    "isExperimentalCompile": {
+      "type": "boolean"
+    },
+    "dynamicIds": {
+      "type": "array",
+      "items": {
+        "type": "number"
+      }
+    },
+    "gip": {
+      "type": "boolean"
+    },
+    "appGip": {
+      "type": "boolean"
+    },
+    "scriptLoader": {
+      "type": "array",
+      "items": {}
+    }
+  },
+  "required": [
+    "props",
+    "page",
+    "query",
+    "buildId",
+    "assetPrefix",
+    "isFallback",
+    "isExperimentalCompile",
+    "dynamicIds",
+    "gip",
+    "appGip",
+    "scriptLoader"
+  ]
+}

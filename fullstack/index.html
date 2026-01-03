@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>export.tools</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="export.tools helps you download, view, and organize your PoeAI chat media in one place."
+    />
+    <meta
+      name="keywords"
+      content="Poe, PoeAI, poe.com, Quora, Poe chat, export, download, export chats, media viewer, image viewer, chat export, poe export tools"
+    />
+    <meta name="robots" content="index, follow" />
+    <meta property="og:title" content="export.tools" />
+    <meta
+      property="og:description"
+      content="Browse and download media from your PoeAI chats with a clean, simple viewer."
+    />
+    <meta property="og:image" content="/static/og_image.svg" />
+    <meta name="application-name" content="export.tools" />
+    <link rel="stylesheet" href="/styles.css" />
+    <link rel="icon" type="image/png" href="/static/faviconpng.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="/static/faviconsvg.svg" />
+    <link rel="shortcut icon" href="/static/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/appletouchicon.png" />
+    <meta name="apple-mobile-web-app-title" content="tools" />
+    <link rel="manifest" href="/static/manifest.json" />
+  </head>
+  <body>
+    <header class="top-bar">
+      <button
+        id="left-action"
+        class="icon-button"
+        type="button"
+        aria-label="Upload next-data.json"
+      ></button>
+      <form id="share-form" class="share-form" autocomplete="off">
+        <input
+          id="share-url"
+          class="prompt-input"
+          type="url"
+          spellcheck="false"
+          placeholder="poe chat share url"
+          aria-label="Poe share url"
+        />
+      </form>
+      <div class="menu-anchor">
+        <button
+          id="right-action"
+          class="icon-button"
+          type="button"
+          aria-label="Paste share URL"
+        >
+        </button>
+        <div id="action-menu" class="action-menu is-hidden" role="menu" aria-label="More actions">
+          <button
+            id="menu-download"
+            class="icon-button menu-button"
+            type="button"
+            aria-label="Download zip"
+            role="menuitem"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M12 15V3" />
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <path d="m7 10 5 5 5-5" />
+            </svg>
+          </button>
+          <button
+            id="menu-upload"
+            class="icon-button menu-button"
+            type="button"
+            aria-label="Upload next-data.json"
+            role="menuitem"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="lucide lucide-upload-icon lucide-upload"
+            >
+              <path d="M12 3v12" />
+              <path d="m17 8-5-5-5 5" />
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            </svg>
+          </button>
+          <button
+            id="menu-toggle"
+            class="icon-button menu-button"
+            type="button"
+            aria-label="Toggle chat view"
+            aria-pressed="false"
+            role="menuitem"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path
+                d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"
+              />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </header>
+    <div id="notice" class="notice is-hidden" role="alert" aria-live="polite"></div>
+    <main class="container">
+      <div id="chat" class="chat-view is-hidden"></div>
+      <div id="grid" class="media-grid"></div>
+    </main>
+    <input
+      id="upload-input"
+      class="file-input"
+      type="file"
+      accept="application/json,.json"
+    />
+    <script type="module" src="./app.ts"></script>
+  </body>
+</html>

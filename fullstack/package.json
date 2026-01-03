@@ -1,0 +1,12 @@
+{
+  "name": "fullstack",
+  "module": "server.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "dependencies": {
+    "client-zip": "^2.5.0"
+  }
+}
