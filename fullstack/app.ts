@@ -62,6 +62,20 @@ type PoeNextData = {
   };
 };
 
+type ExportAttachment = {
+  url?: string;
+};
+
+type ExportMessage = {
+  role?: string;
+  content?: string;
+  attachments?: ExportAttachment[];
+};
+
+type ExportData = {
+  messages?: ExportMessage[];
+};
+
 type ChatMessage = {
   role: "human" | "bot";
   text: string;
@@ -314,41 +328,68 @@ function applyNextData(raw: string | null, fallbackUrls: string[] = []) {
 
 function parseChatMessages(raw: string | null): ChatParseResult {
   if (!raw) return { messages: [], error: null };
-  let data: PoeNextData;
+  let data: PoeNextData | ExportData;
   try {
-    data = JSON.parse(raw) as PoeNextData;
+    data = JSON.parse(raw) as PoeNextData | ExportData;
   } catch (error) {
     const message = error instanceof Error ? error.message : "Invalid JSON";
-    return { messages: [], error: `Invalid next-data.json payload: ${message}` };
+    return { messages: [], error: `Invalid JSON payload: ${message}` };
   }
 
-  const messages = data?.props?.pageProps?.data?.mainQuery?.chatShare?.messages;
-  if (!Array.isArray(messages)) {
-    return { messages: [], error: "Chat data missing from next-data.json." };
-  }
-
-  return {
-    messages: messages.map((message) => {
-      const attachments: string[] = [];
-      if (Array.isArray(message?.attachments)) {
-        const seen = new Set<string>();
-        for (const attachment of message.attachments) {
-          const url = attachment?.file?.url ?? attachment?.url;
-          if (typeof url === "string" && url.length > 0 && !seen.has(url)) {
-            seen.add(url);
-            attachments.push(url);
+  const nextDataMessages =
+    (data as PoeNextData)?.props?.pageProps?.data?.mainQuery?.chatShare?.messages;
+  if (Array.isArray(nextDataMessages)) {
+    return {
+      messages: nextDataMessages.map((message) => {
+        const attachments: string[] = [];
+        if (Array.isArray(message?.attachments)) {
+          const seen = new Set<string>();
+          for (const attachment of message.attachments) {
+            const url = attachment?.file?.url ?? attachment?.url;
+            if (typeof url === "string" && url.length > 0 && !seen.has(url)) {
+              seen.add(url);
+              attachments.push(url);
+            }
           }
         }
-      }
 
-      return {
-        role: message?.author === "human" ? "human" : "bot",
-        text: typeof message?.text === "string" ? message.text : "",
-        attachments,
-      };
-    }),
-    error: null,
-  };
+        return {
+          role: message?.author === "human" ? "human" : "bot",
+          text: typeof message?.text === "string" ? message.text : "",
+          attachments,
+        };
+      }),
+      error: null,
+    };
+  }
+
+  const exportMessages = (data as ExportData)?.messages;
+  if (Array.isArray(exportMessages)) {
+    return {
+      messages: exportMessages.map((message) => {
+        const attachments: string[] = [];
+        if (Array.isArray(message?.attachments)) {
+          const seen = new Set<string>();
+          for (const attachment of message.attachments) {
+            const url = attachment?.url;
+            if (typeof url === "string" && url.length > 0 && !seen.has(url)) {
+              seen.add(url);
+              attachments.push(url);
+            }
+          }
+        }
+
+        return {
+          role: message?.role === "user" ? "human" : "bot",
+          text: typeof message?.content === "string" ? message.content : "",
+          attachments,
+        };
+      }),
+      error: null,
+    };
+  }
+
+  return { messages: [], error: "Chat data missing from JSON payload." };
 }
 
 function formatGalleryZipName(date: Date) {
