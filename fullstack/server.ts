@@ -44,22 +44,37 @@ function addStaticRoute(routes: Record<string, Response>, route: string, body: B
   }
 }
 
-// Build static routes from embedded files (production only).
+// Build static routes from embedded files (production) or filesystem (dev).
 const staticRoutes: Record<string, Response> = {};
-for (const blob of embeddedFiles) {
-  const nameWithHash = (blob as Blob & { name: string }).name.replace(/\\/g, "/");
-  const baseName = nameWithHash.split("/").pop() ?? nameWithHash;
-  const strippedBase = stripAssetHash(baseName);
 
-  // Serve hashed files at root (e.g., /faviconpng-7kqrmrr8.png)
-  addStaticRoute(staticRoutes, `/${baseName}`, blob);
-  
-  // Serve at /static/ with unhashed names for hardcoded references
-  addStaticRoute(staticRoutes, `/static/${strippedBase}`, blob);
+if (embeddedFiles.length > 0) {
+  // Production: serve embedded files
+  for (const blob of embeddedFiles) {
+    const nameWithHash = (blob as Blob & { name: string }).name.replace(/\\/g, "/");
+    const baseName = nameWithHash.split("/").pop() ?? nameWithHash;
+    const strippedBase = stripAssetHash(baseName);
+    
+    // Serve hashed files at root (e.g., /faviconpng-7kqrmrr8.png)
+    addStaticRoute(staticRoutes, `/${baseName}`, blob);
 
-  if (nameWithHash.startsWith("static/")) {
-    const relativeName = nameWithHash.slice("static/".length);
-    addStaticRoute(staticRoutes, `/static/${stripAssetHash(relativeName)}`, blob);
+    if (nameWithHash.startsWith("static/")) {
+      // For files from static/ directory, serve at /static/ with original filename
+      const originalName = nameWithHash.slice("static/".length);
+      const originalNameWithoutHash = stripAssetHash(originalName);
+      addStaticRoute(staticRoutes, `/static/${originalNameWithoutHash}`, blob);
+    } else {
+      // For other files, also serve with unhashed name
+      addStaticRoute(staticRoutes, `/static/${strippedBase}`, blob);
+    }
+  }
+} else {
+  // Development: serve files from filesystem
+  const staticDir = join(import.meta.dir, "static");
+  if (existsSync(staticDir)) {
+    for (const filePath of listStaticFiles(staticDir)) {
+      const relativePath = relative(staticDir, filePath).split(sep).join("/");
+      addStaticRoute(staticRoutes, `/static/${relativePath}`, Bun.file(filePath));
+    }
   }
 }
 
