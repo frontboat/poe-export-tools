@@ -3,6 +3,14 @@ import { existsSync, readdirSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import index from "./index.html";
 
+// Import static assets for embedding in executable
+import "./static/og_image.svg" with { type: "file" };
+import "./static/faviconpng.png" with { type: "file" };
+import "./static/faviconsvg.svg" with { type: "file" };
+import "./static/favicon.ico" with { type: "file" };
+import "./static/appletouchicon.png" with { type: "file" };
+import "./static/manifest.json" with { type: "file" };
+
 const allowedHost = "poe.com";
 const userAgent =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36";
