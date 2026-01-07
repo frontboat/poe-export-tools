@@ -36,27 +36,22 @@ function addStaticRoute(routes: Record<string, Response>, route: string, body: B
   }
 }
 
-// Build static routes from embedded files (compiled) + on-disk files (dev).
+// Build static routes from embedded files (production only).
 const staticRoutes: Record<string, Response> = {};
 for (const blob of embeddedFiles) {
   const nameWithHash = (blob as Blob & { name: string }).name.replace(/\\/g, "/");
   const baseName = nameWithHash.split("/").pop() ?? nameWithHash;
   const strippedBase = stripAssetHash(baseName);
 
+  // Serve hashed files at root (e.g., /faviconpng-7kqrmrr8.png)
   addStaticRoute(staticRoutes, `/${baseName}`, blob);
+  
+  // Serve at /static/ with unhashed names for hardcoded references
   addStaticRoute(staticRoutes, `/static/${strippedBase}`, blob);
 
   if (nameWithHash.startsWith("static/")) {
     const relativeName = nameWithHash.slice("static/".length);
     addStaticRoute(staticRoutes, `/static/${stripAssetHash(relativeName)}`, blob);
-  }
-}
-
-const staticDir = join(import.meta.dir, "static");
-if (existsSync(staticDir)) {
-  for (const filePath of listStaticFiles(staticDir)) {
-    const relativePath = relative(staticDir, filePath).split(sep).join("/");
-    addStaticRoute(staticRoutes, `/static/${relativePath}`, Bun.file(filePath));
   }
 }
 
