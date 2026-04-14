@@ -34,7 +34,7 @@
   <img src="images/usage.webp" alt="export.tools grid view" width="760">
 </p>
 
-export.tools is a small Bun fullstack app that extracts attachment URLs from Poe share links. Paste a `https://poe.com/s/<id>` URL, browse the media in grid or chat view, and download everything as a zip — compression happens entirely in the browser.
+export.tools extracts attachment URLs from Poe share links. Paste a `https://poe.com/s/<id>` URL, browse the media in grid or chat view, and download everything as a zip — compression happens entirely in the browser.
 
 ### Features
 
@@ -42,7 +42,14 @@ export.tools is a small Bun fullstack app that extracts attachment URLs from Poe
 - Toggle between a media grid and a chat-transcript view
 - Upload a saved `next-data.json` to re-open a previous export offline
 - Download all attachments plus `next-data.json` as a single zip
-- Ships as a single standalone binary for easy deployment
+
+### Grabbing a share URL
+
+On Poe, open the chat menu and tap **Share entire chat** to copy a `https://poe.com/s/<id>` URL, then paste it into export.tools.
+
+<p align="center">
+  <img src="images/how-to-share.webp" alt="Poe chat menu with Share entire chat highlighted" width="260">
+</p>
 
 <!-- GETTING STARTED -->
 ## Getting Started
@@ -94,7 +101,7 @@ RAILPACK_PACKAGES="bun@latest"
 <!-- LEGACY -->
 ## Legacy Python Tools
 
-The original upstream Selenium-based scripts — image downloader, chat text downloader, creator earnings exporter — live in [`legacy/`](legacy/) along with their own README. They are not under active development in this fork.
+The original upstream Selenium-based scripts — image downloader, chat text downloader, creator earnings exporter — live in [`legacy/`](legacy/) along with their own README. This fork no longer maintains them.
 
 <!-- LICENSE -->
 ## License
