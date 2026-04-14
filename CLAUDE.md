@@ -7,9 +7,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 This repo is a fork of `JohnSmith-132/poe-export-tools` with two **independent, non-interacting** sub-projects:
 
 1. **`fullstack/`** — the active project. A Bun web app (`export.tools`) that extracts attachment URLs from `https://poe.com/s/<id>` share links and builds a zip client-side. See `fullstack/CLAUDE.md` for architecture, commands, and `fullstack/AGENTS.md` for the try/catch philosophy that governs that code.
-2. **Root-level Python scripts** (`poe_image_downloader.py`, `poe_text_downloader.py`, `creator_earnings.py`) — the **original upstream** Selenium-based tools. Not under active development in this fork. Treat as legacy unless the user explicitly asks to modify them.
+2. **`legacy/`** — the **original upstream** Selenium-based Python tools (`poe_image_downloader.py`, `poe_text_downloader.py`, `creator_earnings.py`) and their README. Not under active development in this fork. Treat as legacy unless the user explicitly asks to modify them.
 
-Default to working inside `fullstack/` unless the task clearly targets the Python scripts or README/license at the root.
+Default to working inside `fullstack/` unless the task clearly targets `legacy/`.
 
 ## Which CLAUDE.md wins
 
@@ -34,9 +34,10 @@ bun run build.ts           # compile standalone ./fullstack binary
 ./fullstack                # run the compiled binary
 ```
 
-Python scripts (root, legacy):
+Python scripts (from `legacy/`):
 
 ```bash
+cd legacy
 pip install -r requirements.txt
 python poe_image_downloader.py    # or poe_text_downloader.py / creator_earnings.py
 ```
