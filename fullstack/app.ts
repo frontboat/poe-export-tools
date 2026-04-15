@@ -12,6 +12,7 @@ const menuUpload = document.querySelector<HTMLButtonElement>("#menu-upload");
 const menuToggle = document.querySelector<HTMLButtonElement>("#menu-toggle");
 const uploadInput = document.querySelector<HTMLInputElement>("#upload-input");
 const notice = document.querySelector<HTMLElement>("#notice");
+const intro = document.querySelector<HTMLElement>("#intro");
 
 const urls: string[] = [];
 let nextDataRaw: string | null = null;
@@ -24,15 +25,15 @@ const videoExtensions = new Set(["mp4", "webm", "ogg", "mov", "m4v"]);
 
 const icons = {
   upload:
-    '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-upload-icon lucide-upload"><path d="M12 3v12"/><path d="m17 8-5-5-5 5"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></svg>',
+    '<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-upload-icon lucide-upload"><path d="M12 3v12"/><path d="m17 8-5-5-5 5"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></svg>',
   home:
-    '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-house-icon lucide-house"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>',
+    '<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-house-icon lucide-house"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>',
   paste:
-    '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clipboard-paste-icon lucide-clipboard-paste"><path d="M11 14h10"/><path d="M16 4h2a2 2 0 0 1 2 2v1.344"/><path d="m17 18 4-4-4-4"/><path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 1.793-1.113"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>',
+    '<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clipboard-paste-icon lucide-clipboard-paste"><path d="M11 14h10"/><path d="M16 4h2a2 2 0 0 1 2 2v1.344"/><path d="m17 18 4-4-4-4"/><path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 1.793-1.113"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>',
   enter:
-    '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-right-icon lucide-arrow-right"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>',
+    '<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-right-icon lucide-arrow-right"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>',
   ellipsis:
-    '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-ellipsis-vertical-icon lucide-ellipsis-vertical"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>',
+    '<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-ellipsis-vertical-icon lucide-ellipsis-vertical"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>',
 };
 
 type PoeAttachment = {
@@ -164,6 +165,8 @@ function updateHeaderState() {
     isMenuOpen = false;
   }
 
+  if (intro) intro.classList.toggle("is-hidden", showContent);
+
   setButtonIcon(
     leftButton,
     showContent ? icons.home : icons.upload,
@@ -210,7 +213,24 @@ function updateHeaderState() {
   }
 }
 
+function describeAttachment(url: string, index?: number) {
+  let filename = "";
+  try {
+    const parsed = new URL(url);
+    filename = decodeURIComponent(parsed.pathname.split("/").pop() ?? "");
+  } catch {
+    filename = "";
+  }
+  if (filename) {
+    return typeof index === "number"
+      ? `Attachment ${index + 1}: ${filename}`
+      : `Attachment: ${filename}`;
+  }
+  return typeof index === "number" ? `Attachment ${index + 1}` : "Attachment";
+}
+
 function createMediaAnchor(url: string, className: string, index?: number) {
+  const label = describeAttachment(url, index);
   const anchor = document.createElement("a");
   anchor.className = className;
   if (typeof index === "number") {
@@ -219,6 +239,7 @@ function createMediaAnchor(url: string, className: string, index?: number) {
   anchor.href = url;
   anchor.target = "_blank";
   anchor.rel = "noreferrer";
+  anchor.setAttribute("aria-label", label);
 
   const preview = document.createElement("div");
   preview.className = "media-preview";
@@ -229,13 +250,13 @@ function createMediaAnchor(url: string, className: string, index?: number) {
     video.muted = true;
     video.playsInline = true;
     video.preload = "metadata";
-    video.setAttribute("aria-label", "Attachment preview");
+    video.setAttribute("aria-label", label);
     preview.appendChild(video);
   } else {
     const img = document.createElement("img");
     img.src = url;
     img.loading = "lazy";
-    img.alt = "Attachment preview";
+    img.alt = label;
     preview.appendChild(img);
   }
 
@@ -603,21 +624,26 @@ rightButton?.addEventListener("click", () => {
   })();
 });
 
+function closeMenuRestoreFocus() {
+  setMenuOpen(false);
+  rightButton?.focus();
+}
+
 menuDownload?.addEventListener("click", () => {
   if (menuDownload?.disabled) return;
-  setMenuOpen(false);
+  closeMenuRestoreFocus();
   void downloadAll();
 });
 
 menuUpload?.addEventListener("click", () => {
   if (menuUpload?.disabled) return;
-  setMenuOpen(false);
+  closeMenuRestoreFocus();
   uploadInput?.click();
 });
 
 menuToggle?.addEventListener("click", () => {
   if (menuToggle?.disabled) return;
-  setMenuOpen(false);
+  closeMenuRestoreFocus();
   setViewMode(isChatView ? "grid" : "chat");
 });
 
@@ -651,6 +677,13 @@ document.addEventListener("click", (event) => {
     return;
   }
   setMenuOpen(false);
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape") return;
+  if (!isMenuOpen) return;
+  event.preventDefault();
+  closeMenuRestoreFocus();
 });
 
 const params = new URLSearchParams(window.location.search);
