@@ -1,41 +1,47 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
-    <title>export.tools</title>
+    <title>Poe chat export — download images, videos & files from poe.com share links</title>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#000000" />
     <meta
       name="description"
-      content="export.tools helps you download, view, and organize your PoeAI chat media in one place."
-    />
-    <meta
-      name="keywords"
-      content="Poe, PoeAI, poe.com, Quora, Poe chat, export, download, export chats, media viewer, image viewer, chat export, poe export tools"
+      content="Paste a poe.com/s/… share link and download every image, video, and file from the chat as a zip. Runs entirely in your browser — nothing is uploaded."
     />
     <meta name="robots" content="index, follow" />
-    <meta property="og:title" content="export.tools" />
+    <link rel="canonical" href="https://export.tools/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://export.tools/" />
+    <meta property="og:title" content="Poe chat export — download media from poe.com share links" />
     <meta
       property="og:description"
-      content="Browse and download media from your PoeAI chats with a clean, simple viewer."
+      content="Paste a poe.com/s/… share link and download every image, video, and file from the chat as a zip."
     />
-    <meta property="og:image" content="/static/og_image.svg" />
+    <meta property="og:image" content="https://export.tools/static/og.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="export.tools — download images, videos, and files from any poe.com chat share link" />
     <meta name="application-name" content="export.tools" />
     <link rel="stylesheet" href="/styles.css" />
     <link rel="icon" type="image/png" href="/static/faviconpng.png" sizes="96x96" />
     <link rel="icon" type="image/svg+xml" href="/static/faviconsvg.svg" />
     <link rel="shortcut icon" href="/static/favicon.ico" />
     <link rel="apple-touch-icon" sizes="180x180" href="/static/appletouchicon.png" />
-    <meta name="apple-mobile-web-app-title" content="tools" />
+    <meta name="apple-mobile-web-app-title" content="export.tools" />
     <!-- Twitter Meta Tags -->
     <meta name="twitter:card" content="summary_large_image">
     <meta property="twitter:domain" content="export.tools">
     <meta property="twitter:url" content="https://export.tools/">
-    <meta name="twitter:title" content="export.tools">
-    <meta name="twitter:description" content="Browse and download media from your PoeAI chats with a clean, simple viewer.">
-    <meta name="twitter:image" content="https://export.tools/static/og_image.svg">
+    <meta name="twitter:title" content="Poe chat export — download media from poe.com share links">
+    <meta name="twitter:description" content="Paste a poe.com/s/… share link and download every image, video, and file from the chat as a zip.">
+    <meta name="twitter:image" content="https://export.tools/static/og.png">
+    <meta name="twitter:image:alt" content="export.tools — download images, videos, and files from any poe.com chat share link">
     <link rel="manifest" href="/static/manifest.json" />
   </head>
   <body>
+    <a class="skip-link" href="#main">Skip to main content</a>
     <header class="top-bar">
       <button
         id="left-action"
@@ -46,10 +52,13 @@
       <form id="share-form" class="share-form" autocomplete="off">
         <input
           id="share-url"
+          name="share-url"
           class="prompt-input"
           type="url"
+          inputmode="url"
+          autocomplete="off"
           spellcheck="false"
-          placeholder="poe chat share url"
+          placeholder="poe.com/s/<id>…"
           aria-label="Poe share url"
         />
       </form>
@@ -61,13 +70,12 @@
           aria-label="Paste share URL"
         >
         </button>
-        <div id="action-menu" class="action-menu is-hidden" role="menu" aria-label="More actions">
+        <div id="action-menu" class="action-menu is-hidden">
           <button
             id="menu-download"
             class="icon-button menu-button"
             type="button"
             aria-label="Download zip"
-            role="menuitem"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -79,6 +87,7 @@
               stroke-width="2"
               stroke-linecap="round"
               stroke-linejoin="round"
+              aria-hidden="true"
             >
               <path d="M12 15V3" />
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -90,7 +99,6 @@
             class="icon-button menu-button"
             type="button"
             aria-label="Upload next-data.json"
-            role="menuitem"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -103,6 +111,7 @@
               stroke-linecap="round"
               stroke-linejoin="round"
               class="lucide lucide-upload-icon lucide-upload"
+              aria-hidden="true"
             >
               <path d="M12 3v12" />
               <path d="m17 8-5-5-5 5" />
@@ -115,7 +124,6 @@
             type="button"
             aria-label="Toggle chat view"
             aria-pressed="false"
-            role="menuitem"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -127,6 +135,7 @@
               stroke-width="2"
               stroke-linecap="round"
               stroke-linejoin="round"
+              aria-hidden="true"
             >
               <path
                 d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"
@@ -136,16 +145,42 @@
         </div>
       </div>
     </header>
-    <div id="notice" class="notice is-hidden" role="alert" aria-live="polite"></div>
-    <main class="container">
+    <div id="notice" class="notice is-hidden" role="status" aria-live="polite"></div>
+    <main id="main" class="container">
+      <section id="intro" class="intro" aria-labelledby="intro-title">
+        <h1 id="intro-title" class="intro-title">
+          Download images, videos, and files from any <a class="intro-title-link" href="https://poe.com" rel="noopener" translate="no">poe.com</a> chat share link.
+        </h1>
+        <ol class="intro-steps">
+          <li class="intro-step">
+            <span class="intro-step-num">01</span>
+            <span class="intro-step-label">Paste</span>
+            <span class="intro-step-hint">a <code translate="no">poe.com/s/&lt;id&gt;</code> share link above</span>
+          </li>
+          <li class="intro-step">
+            <span class="intro-step-num">02</span>
+            <span class="intro-step-label">Fetch</span>
+            <span class="intro-step-hint">the server reads the chat share once</span>
+          </li>
+          <li class="intro-step">
+            <span class="intro-step-num">03</span>
+            <span class="intro-step-label">Zip</span>
+            <span class="intro-step-hint">your browser bundles attachments locally</span>
+          </li>
+        </ol>
+        <p class="intro-foot">Runs in your browser — nothing is stored</p>
+      </section>
       <div id="chat" class="chat-view is-hidden"></div>
       <div id="grid" class="media-grid"></div>
     </main>
     <input
       id="upload-input"
+      name="upload-input"
       class="file-input"
       type="file"
       accept="application/json,.json"
+      aria-label="Upload next-data.json"
+      tabindex="-1"
     />
     <script type="module" src="./app.ts"></script>
   </body>
