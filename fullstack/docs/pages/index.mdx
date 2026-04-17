@@ -4,17 +4,33 @@ layout: landing
 
 import { HomePage } from 'vocs/components'
 
-<HomePage.Root>
+<div style={{
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: '2.25rem',
+  paddingBlock: 'clamp(4rem, 12vh, 8rem)',
+  textAlign: 'center',
+}}>
   <img
     src="/faviconsvg.svg"
-    alt="export.tools"
+    alt=""
     width="160"
     height="160"
-    style={{ display: 'block', margin: '0 auto 24px' }}
+    style={{ display: 'block' }}
   />
-  <HomePage.Tagline>export.tools</HomePage.Tagline>
+  <h1 style={{
+    fontSize: 'clamp(3rem, 8vw, 5.5rem)',
+    fontWeight: 700,
+    letterSpacing: '-0.04em',
+    lineHeight: 1,
+    margin: 0,
+  }}>
+    export.tools
+  </h1>
   <HomePage.Buttons>
     <HomePage.Button href="/getting-started" variant="accent">Get started</HomePage.Button>
     <HomePage.Button href="https://github.com/frontboat/poe-export-tools">GitHub</HomePage.Button>
   </HomePage.Buttons>
-</HomePage.Root>
+</div>
