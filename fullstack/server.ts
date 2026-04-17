@@ -28,8 +28,9 @@ for (const blob of embeddedFiles) {
   // Skip bundler output that isn't a user-facing static asset.
   if (rawName.endsWith(".html")) continue;
   if (rawName.startsWith("chunk-")) continue;
-  // Normalize hashed names (faviconpng-abc123.png) to their stable form.
-  const name = rawName.replace(/-[a-f0-9]{8,}\./, ".");
+  // Normalize hashed names (faviconpng-jd5gacpj.png) to their stable form.
+  // Bun uses an alphanumeric hash (a-z, 0-9), not hex.
+  const name = rawName.replace(/-[a-z0-9]{8}\./, ".");
   staticRoutes[`/static/${name}`] = new Response(blob);
 }
 
