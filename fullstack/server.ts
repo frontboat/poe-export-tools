@@ -3,6 +3,14 @@ import { existsSync, statSync } from "node:fs";
 import { join } from "node:path";
 import index from "./index.html";
 
+// Files referenced only in meta tags, manifest.json, or `rel="shortcut icon"`
+// — Bun's HTML bundler can't trace these, so import explicitly to embed them.
+import "./static/og.png" with { type: "file" };
+import "./static/og_image.svg" with { type: "file" };
+import "./static/favicon.ico" with { type: "file" };
+import "./static/webappmanifestbig.png" with { type: "file" };
+import "./static/webappmanifestsmall.png" with { type: "file" };
+
 const allowedHost = "poe.com";
 const userAgent =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36";
@@ -15,8 +23,13 @@ const port = Number.isInteger(parsedPort) && parsedPort >= 0 ? parsedPort : 3000
 // in-page hashed references automatically via routes: { "/": index }.
 const staticRoutes: Record<string, Response> = {};
 for (const blob of embeddedFiles) {
-  const name = (blob as Blob & { name: string }).name.replace(/\\/g, "/").split("/").pop();
-  if (!name || name === "index.html") continue;
+  const rawName = (blob as Blob & { name: string }).name.replace(/\\/g, "/").split("/").pop();
+  if (!rawName) continue;
+  // Skip bundler output that isn't a user-facing static asset.
+  if (rawName.endsWith(".html")) continue;
+  if (rawName.startsWith("chunk-")) continue;
+  // Normalize hashed names (faviconpng-abc123.png) to their stable form.
+  const name = rawName.replace(/-[a-f0-9]{8,}\./, ".");
   staticRoutes[`/static/${name}`] = new Response(blob);
 }
 

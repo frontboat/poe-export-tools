@@ -1,11 +1,5 @@
-import { Glob } from "bun";
-
-const staticFiles = Array.from(new Glob("./static/**/*").scanSync(".")).filter(
-  (file) => !file.endsWith("/.DS_Store") && !file.endsWith(".DS_Store")
-);
-
 await Bun.build({
-  entrypoints: ["./server.ts", ...staticFiles],
+  entrypoints: ["./server.ts"],
   target: "bun",
   loader: {
     ".png": "file",
