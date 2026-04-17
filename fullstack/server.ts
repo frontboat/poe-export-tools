@@ -219,6 +219,10 @@ const server = serve({
   routes: {
     ...staticRoutes,
     "/": index,
+    "/robots.txt": new Response(
+      "User-agent: *\nAllow: /\n",
+      { headers: { "Content-Type": "text/plain" } }
+    ),
     "/api/share": {
       async GET(req) {
         const requestUrl = new URL(req.url);
