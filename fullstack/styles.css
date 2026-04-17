@@ -275,7 +275,6 @@ body::before {
   letter-spacing: 0.1em;
   font-variant-numeric: tabular-nums;
   color: var(--muted);
-  opacity: 0.55;
 }
 
 .intro-step-label {

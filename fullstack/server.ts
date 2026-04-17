@@ -1,5 +1,5 @@
 import { serve, embeddedFiles } from "bun";
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import index from "./index.html";
 
@@ -59,6 +59,11 @@ if (existsSync(staticDir)) {
     addStaticRoute(staticRoutes, `/static/${relativePath}`, Bun.file(filePath));
   }
 }
+
+const indexHtmlPath = join(import.meta.dir, "index.html");
+const siteLastMod = statSync(existsSync(indexHtmlPath) ? indexHtmlPath : process.execPath)
+  .mtime.toISOString()
+  .slice(0, 10);
 
 function normalizeShareUrl(rawUrl: string): string | null {
   try {
@@ -220,8 +225,12 @@ const server = serve({
     ...staticRoutes,
     "/": index,
     "/robots.txt": new Response(
-      "User-agent: *\nAllow: /\n",
+      "User-agent: *\nAllow: /\nSitemap: https://export.tools/sitemap.xml\n",
       { headers: { "Content-Type": "text/plain" } }
+    ),
+    "/sitemap.xml": new Response(
+      `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url>\n    <loc>https://export.tools/</loc>\n    <lastmod>${siteLastMod}</lastmod>\n  </url>\n</urlset>\n`,
+      { headers: { "Content-Type": "application/xml" } }
     ),
     "/api/share": {
       async GET(req) {
