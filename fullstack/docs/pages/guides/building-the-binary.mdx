@@ -1,0 +1,89 @@
+---
+title: Building the binary
+description: How build.ts compiles the server, client, and assets into a single executable.
+---
+
+# Building the binary
+
+The entire app — server, client bundle, and every static asset — compiles
+into a single Bun executable via `bun build --compile`.
+
+## The build script
+
+```ts
+// build.ts
+await Bun.build({
+  entrypoints: ["./server.ts"],
+  target: "bun",
+  loader: {
+    ".png": "file",
+    ".svg": "file",
+    ".ico": "file",
+    ".json": "file",
+    ".webmanifest": "file",
+  },
+  naming: { asset: "[name].[ext]" },
+  compile: {
+    target: "bun-linux-x64",
+    execArgv: ["--smol"],
+    outfile: "./fullstack",
+  },
+  minify: true,
+  bytecode: true,
+  define: {
+    "process.env.NODE_ENV": JSON.stringify("production"),
+    VERSION: JSON.stringify("1.3.17"),
+  },
+});
+```
+
+## What each flag does
+
+| Flag | Effect |
+|---|---|
+| `entrypoints: ["./server.ts"]` | Only the server is an entrypoint. `app.ts` is bundled transitively via the `import index from "./index.html"` line. |
+| `target: "bun"` | Compile for the Bun runtime (not Node). |
+| `compile.target: "bun-linux-x64"` | Produce a Linux x64 binary. Flip to `bun-darwin-arm64-modern` for mac dev — **do not commit.** |
+| `compile.execArgv: ["--smol"]` | Run with Bun's low-memory mode. Worth it on small Railway instances. |
+| `minify: true` | Minify JS, CSS, HTML. |
+| `bytecode: true` | Precompile JS to bytecode for faster cold starts. |
+| `define.VERSION` | Inject a version string at compile time. Currently **hardcoded**. |
+
+## Embedded files
+
+Bun's HTML bundler traces every `<link>`, `<script>`, and `<img>` reference
+in `index.html` and embeds them. Files referenced only in `<meta>` tags,
+`manifest.json`, or `rel="shortcut icon"` can't be traced — they're imported
+explicitly in `server.ts`:
+
+```ts
+import "./static/og.png" with { type: "file" };
+import "./static/og_image.svg" with { type: "file" };
+import "./static/favicon.ico" with { type: "file" };
+import "./static/webappmanifestbig.png" with { type: "file" };
+import "./static/webappmanifestsmall.png" with { type: "file" };
+```
+
+Without these imports, the OG image and manifest icons would 404 in
+production.
+
+See [Hash-tolerant static routing](/concepts/hash-tolerant-static-routing)
+for how the un-hashed public routes (`/static/og.png`) map onto Bun's
+content-hashed embedded names.
+
+## Running the binary
+
+```bash
+./fullstack           # listens on :3000
+PORT=8080 ./fullstack # override
+```
+
+No working directory requirements. You can move the binary anywhere.
+
+## Version bumping
+
+:::warning
+`VERSION` is hardcoded in `build.ts`. When you cut a release, bump it by
+hand and tag the commit. There's an open TODO to derive it from
+`git describe`.
+:::

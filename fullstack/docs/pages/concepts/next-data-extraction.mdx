@@ -1,0 +1,79 @@
+---
+title: __NEXT_DATA__ extraction
+description: How the server pulls Poe's chat payload out of the share page HTML.
+---
+
+# `__NEXT_DATA__` extraction
+
+Poe's share page is a Next.js app. The full chat payload — messages,
+attachments, metadata — is embedded in the HTML as a single
+`<script id="__NEXT_DATA__">` tag. The server's only job is to stream the
+HTML, capture that script's body, and return the JSON.
+
+## Why streaming matters
+
+A Poe chat with a dozen images can produce multi-megabyte HTML. Buffering
+the whole response before parsing wastes memory and time. Bun's
+`HTMLRewriter` exposes a text callback that fires as the parser encounters
+chunks of the target element, so we can concatenate just the piece we
+care about.
+
+## Implementation
+
+```ts
+// server.ts
+const rewriter = new HTMLRewriter().on('script[id="__NEXT_DATA__"]', {
+  text(text) {
+    sawNextData = true;
+    nextDataPayload += text.text;
+  },
+});
+
+const rewritten = rewriter.transform(new Response(stream));
+if (rewritten.body) {
+  await rewritten.body.pipeTo(new WritableStream<Uint8Array>({ write() {} }));
+}
+```
+
+Two things worth understanding:
+
+1. **The side-effect pattern.** `HTMLRewriter` only runs its callbacks
+   while something consumes the transformed body. The no-op `WritableStream`
+   is there to pull the stream through — without the `pipeTo`, the text
+   callback never fires.
+2. **`sawNextData` flag.** The text callback might fire zero times if Poe
+   changed their HTML. Tracking whether the selector matched at all lets us
+   return a clean 502 (`Missing __NEXT_DATA__ payload`) instead of an empty
+   result.
+
+## Parsing
+
+Once the full script text is buffered, a plain `JSON.parse` produces a
+`PoeNextData` object. The traversal path is long but predictable:
+
+```ts
+nextData?.props?.pageProps?.data?.mainQuery?.chatShare?.messages
+```
+
+See [Data shapes](/api/data-shapes) for the full type.
+
+## Failure modes
+
+| Situation | HTTP status | `error` field |
+|---|---|---|
+| URL didn't validate | 400 | `Invalid share URL...` |
+| Poe returned 404 | 404 | `Share not found` |
+| Poe returned any other non-2xx | Upstream status | `Upstream error` |
+| Response has no body | 502 | `Missing response body` |
+| `<script id="__NEXT_DATA__">` missing | 502 | `Missing __NEXT_DATA__ payload` |
+| Script found but JSON invalid | 502 | `Invalid __NEXT_DATA__ payload` |
+| Network error | 502 | `Fetch failed: ...` |
+
+## The raw payload travels back to the client
+
+The endpoint returns **both** the extracted URL list and the raw
+`nextData` string. The client re-parses the raw JSON using
+[`parseChatMessages`](/concepts/chat-parsing), which is more permissive
+than the server's extractor (it also accepts a simpler export shape).
+Passing the raw payload instead of only the structured shape lets the
+client reconstruct the full chat without a second server round-trip.

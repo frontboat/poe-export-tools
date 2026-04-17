@@ -3,8 +3,17 @@
   "module": "server.ts",
   "type": "module",
   "private": true,
+  "scripts": {
+    "docs:dev": "vocs dev",
+    "docs:build": "vocs build",
+    "docs:preview": "vocs preview"
+  },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "@types/react": "^19.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "vocs": "^1.4.1"
   },
   "dependencies": {
     "client-zip": "^2.5.0"

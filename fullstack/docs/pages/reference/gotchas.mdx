@@ -1,0 +1,89 @@
+---
+title: Gotchas
+description: The non-obvious things that will bite a new contributor.
+---
+
+# Gotchas
+
+Short list of everything that would surprise a new contributor. Most are
+covered in depth elsewhere — this page exists so you can scan for the one
+that's biting you.
+
+## Build target is Linux, even on macOS
+
+[`build.ts`](https://github.com/frontboat/poe-export-tools/blob/main/fullstack/build.ts)
+hardcodes `target: "bun-linux-x64"` because that's what Railway builds
+against. Flip to `bun-darwin-arm64-modern` for local mac builds. **Don't
+commit the flip.** See [Local development](/guides/local-development).
+
+## `VERSION` is a manual string
+
+Hardcoded in `build.ts` as a `define`. No git-derived versioning. Bump by
+hand on release. Open TODO to automate.
+
+## Share-URL validation is duplicated
+
+Identical validators live in `server.ts` and `app.ts`. If you change one,
+change both. There's no test catching drift. See
+[Share-URL validation](/concepts/share-url-validation).
+
+## Two JSON input formats
+
+`parseChatMessages` in `app.ts` accepts both Poe's native
+`__NEXT_DATA__` shape and a simpler `{ messages: [{ role, content, attachments: [{ url }] }] }`
+shape. Preserve both when editing parse logic. See
+[Chat parsing](/concepts/chat-parsing).
+
+## Hash-tolerant static routing
+
+Bun's HTML bundler hashes every embedded asset
+(`faviconpng.png` → `faviconpng-jd5gacpj.png`). The server strips the hash
+so `/static/<name>` keeps working. External references must use the
+un-hashed name. Assets referenced only in `<meta>` or `manifest.json` need
+explicit `import "./static/..." with { type: "file" }` to get embedded.
+See [Hash-tolerant static routing](/concepts/hash-tolerant-static-routing).
+
+## `HTMLRewriter` needs something to consume the stream
+
+The text callback only fires while the transformed response is being read.
+The no-op `pipeTo(new WritableStream({ write() {} }))` in
+`extractAttachmentUrls` exists for exactly that reason. Remove it and
+`__NEXT_DATA__` extraction silently does nothing.
+
+## `noUncheckedIndexedAccess`
+
+Every array/object index returns `T | undefined`. Expect early returns,
+optional chaining, and explicit `?? fallback` everywhere.
+
+## `noUnusedLocals` / `noUnusedParameters`
+
+Dead code fails the type-check. Either use it, underscore-prefix it, or
+delete it.
+
+## No tests, linter, or formatter
+
+Strict TypeScript is the only automated check. `bunx tsc --noEmit`
+catches most regressions. Manual review handles the rest.
+
+## Attachment dedup happens in three places
+
+`collectAttachmentUrls` (server), `parseChatMessages` (client), and the
+`downloadZip` generator (client). If you change one, check the others.
+
+## No CORS headers
+
+The browser fetches attachments directly from Poe's CDN. Attachments must
+be publicly accessible — if Poe starts gating them, the zip step will
+fail even though the URLs appear in the grid.
+
+## Debug endpoints
+
+[`/api/embedded`](/api/debug-endpoints) and
+[`/api/routes`](/api/debug-endpoints) expose the bundle's file list. No
+secrets, but strip them at a reverse proxy if you'd rather not advertise
+them publicly.
+
+## Dev port vs docs port
+
+Main app: **3000** (Bun). Docs site: **5173** (Vite). Don't expect a
+single dev command to run both — they're separate.

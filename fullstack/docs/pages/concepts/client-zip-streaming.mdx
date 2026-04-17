@@ -1,0 +1,127 @@
+---
+title: Client-side zip streaming
+description: How the browser turns a list of URLs into a single downloadable archive.
+---
+
+# Client-side zip streaming
+
+The browser — not the server — builds the zip. The server only returns a
+list of URLs. The client fetches each one and streams it through
+[`client-zip`](https://github.com/Touffy/client-zip), which produces a
+valid ZIP file as a `Blob` without ever buffering everything in memory.
+
+## Why client-side?
+
+- No server bandwidth. Attachments flow from Poe's CDN straight to the
+  user.
+- No attachment storage. The binary stays single-purpose.
+- Nothing to delete. The zip exists only for the lifetime of the browser
+  tab.
+
+The trade-off is that the user needs enough memory for the final `Blob`.
+`client-zip` does stream input, but the output `.blob()` call collects the
+archive. For the kind of chat shares this tool targets (tens, not
+thousands, of attachments), that's fine.
+
+## The async generator
+
+```ts
+// app.ts
+const zipResponse = downloadZip(
+  (async function* () {
+    if (nextDataRaw) {
+      yield {
+        name: "next-data.json",
+        input: new Blob([nextDataRaw], { type: "application/json" }),
+      };
+    }
+    for (const [index, url] of urls.entries()) {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch attachment ${index + 1}`);
+      }
+      yield {
+        name: buildAttachmentName(url, index, seenNames),
+        input: response,
+      };
+    }
+  })()
+);
+
+const blob = await zipResponse.blob();
+```
+
+Two patterns worth calling out:
+
+1. **`input` can be a `Response`.** `client-zip` reads the body stream
+   directly — no intermediate `.blob()` call needed. This keeps peak
+   memory low.
+2. **Errors abort the zip.** Throwing inside the generator cancels the
+   stream. The UI catches it, surfaces the message, and re-enables the
+   button.
+
+## Filename generation
+
+```ts
+function buildAttachmentName(rawUrl: string, index: number, seenNames: Map<string, number>) {
+  let name = `attachment-${index + 1}`;
+  try {
+    const url = new URL(rawUrl);
+    name = url.pathname.split("/").pop() || name;
+  } catch {}
+
+  const count = seenNames.get(name) ?? 0;
+  if (count > 0) {
+    const dotIndex = name.lastIndexOf(".");
+    if (dotIndex > 0) {
+      name = name.slice(0, dotIndex) + `-${count + 1}` + name.slice(dotIndex);
+    } else {
+      name = `${name}-${count + 1}`;
+    }
+  }
+
+  if (!name.includes(".")) {
+    name = `${name}.${isVideoUrl(rawUrl) ? "mp4" : "png"}`;
+  }
+
+  seenNames.set(name, count + 1);
+  return name;
+}
+```
+
+Rules:
+
+- Use the last path segment as the base name.
+- If that name has already been used, append `-2`, `-3`, ... before the
+  extension.
+- If the URL has no extension, guess from `isVideoUrl` — `.mp4` for
+  videos, `.png` for everything else.
+
+## Video detection
+
+```ts
+const videoExtensions = new Set(["mp4", "webm", "ogg", "mov", "m4v"]);
+
+function isVideoUrl(rawUrl: string) {
+  // true if path contains /video/ or the extension is known video.
+}
+```
+
+Heuristic, not authoritative. It drives the fallback extension in zip
+filenames and the `<video>` vs `<img>` element choice in previews.
+
+## The download trigger
+
+```ts
+const blobUrl = URL.createObjectURL(blob);
+const link = document.createElement("a");
+link.href = blobUrl;
+link.download = `gallery${MMDDYY}.zip`;
+link.rel = "noreferrer";
+document.body.appendChild(link);
+link.click();
+link.remove();
+URL.revokeObjectURL(blobUrl);
+```
+
+Standard pattern for "save this blob as a file". Nothing Bun-specific.

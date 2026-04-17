@@ -1,0 +1,58 @@
+---
+title: Getting Started
+description: Paste a Poe share link, preview every attachment, and download them as a zip.
+---
+
+# Getting Started
+
+:::steps
+
+### Paste a share link
+
+Copy a URL of the form `https://poe.com/s/<id>` from Poe and paste it into the
+input at the top of the page. The server accepts **only** that exact shape —
+no query strings, no fragments, no alternate hosts.
+
+### Fetch
+
+The server fetches the HTML once, extracts the `__NEXT_DATA__` JSON, and
+returns:
+
+- A deduplicated list of attachment URLs.
+- The raw `__NEXT_DATA__` payload so you can re-render the chat later
+  without re-fetching.
+
+### Review
+
+Browse attachments in the grid view, or switch to the chat view to see the
+original conversation with inline media. No attachments have been downloaded
+at this point — the previews stream directly from Poe's CDN.
+
+### Zip
+
+Open the menu and click **Download zip**. Your browser fetches every
+attachment, streams them through [`client-zip`](https://github.com/Touffy/client-zip),
+and saves a single archive named `gallery<MMDDYY>.zip`. The raw
+`next-data.json` is included so you can re-upload it later.
+
+:::
+
+## What gets included in the zip?
+
+- Every attachment URL, deduplicated across all messages.
+- `next-data.json` — the raw Poe payload, re-uploadable via the upload button.
+- Filenames come from the attachment URL's path. Duplicates are suffixed
+  (`photo.png`, `photo-2.png`). Videos and images without an extension
+  fall back to `.mp4` / `.png`.
+
+## Offline re-export
+
+If you already have a `next-data.json` (or any JSON matching the
+[simpler export shape](/guides/uploading-exported-json)), click the upload
+icon instead of pasting a URL. The server is bypassed entirely.
+
+:::tip
+The hosted instance at [export.tools](https://export.tools) runs the same
+binary you can build yourself. If you'd rather not rely on it, see
+[Self-hosting](/guides/self-hosting).
+:::

@@ -1,0 +1,84 @@
+---
+title: Self-hosting
+description: Run export.tools as a single binary or a Docker container.
+---
+
+# Self-hosting
+
+`export.tools` ships as a single Bun-compiled binary. No database, no queue,
+no external services — one process listening on one port.
+
+## With Docker
+
+The repo ships a multi-stage Dockerfile that builds the binary in `oven/bun:1`
+and copies it into `debian:stable-slim`.
+
+```bash
+cd fullstack
+docker build -t export-tools .
+docker run --rm -p 3000:3000 export-tools
+```
+
+The container runs as a **non-root user** (uid `1001`) and exposes **port
+3000**. Override via `-e PORT=8080 -p 8080:8080`.
+
+:::info
+The runtime image installs `ca-certificates` (so outbound HTTPS to `poe.com`
+works) and `libatomic1` (a Bun runtime dependency on Debian slim).
+:::
+
+## Without Docker
+
+Build the binary locally and run it on any Linux x64 host:
+
+```bash
+cd fullstack
+bun install --production
+bun run build.ts    # produces ./fullstack
+./fullstack
+```
+
+The binary self-contains the static assets, HTML, JS, and CSS. The only
+filesystem requirement at runtime is a writable temp directory for Bun's
+internals.
+
+## Railway
+
+The repo is set up to deploy straight to Railway using the Dockerfile — no
+Railpack config is required. The default build target in
+[`build.ts`](https://github.com/frontboat/poe-export-tools/blob/main/fullstack/build.ts)
+is `bun-linux-x64`, which is what Railway expects.
+
+:::warning
+If you're building locally on Apple Silicon, you'll need to flip the
+`target` in `build.ts` to `bun-darwin-arm64-modern`. **Don't commit that
+change** — it will break the Railway build. See
+[Local development](/guides/local-development).
+:::
+
+## Environment variables
+
+| Var | Default | Purpose |
+|---|---|---|
+| `PORT` | `3000` | HTTP listen port. Set to `0` for an ephemeral port. |
+
+That's the entire configuration surface. Everything else is baked into the
+binary at compile time.
+
+## What the server actually does
+
+The server's only non-static endpoint is [`/api/share`](/api/share-endpoint).
+It fetches the Poe HTML, streams it through Bun's `HTMLRewriter` to extract
+the `__NEXT_DATA__` payload, and returns the attachment URL list plus the
+raw payload. It does **not** fetch the attachments themselves — that happens
+in the user's browser. See [`__NEXT_DATA__` extraction](/concepts/next-data-extraction).
+
+## Security notes
+
+- The server only talks to `poe.com` over HTTPS. Share URLs are validated
+  before the outbound request.
+- [`/api/embedded`](/api/debug-endpoints) and [`/api/routes`](/api/debug-endpoints)
+  expose the compiled bundle's file list. They're safe to leave on — nothing
+  sensitive is embedded — but you can strip them with a reverse proxy rule
+  if you prefer.
+- No cookies, no sessions, no telemetry.

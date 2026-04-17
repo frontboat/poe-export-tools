@@ -1,0 +1,66 @@
+---
+title: Share-URL validation
+description: Why the same validator is written twice, and what it accepts.
+---
+
+# Share-URL validation
+
+The exact share URL is validated in **two places**:
+
+- `server.ts` — rejects bad input before fetching Poe.
+- `app.ts` — rejects bad input before calling `/api/share`.
+
+The two validators are identical. They're deliberately duplicated: the
+client needs to reject locally for UX, and the server can't trust the
+client.
+
+## What's allowed
+
+```ts
+function normalizeShareUrl(rawUrl: string): string | null {
+  try {
+    const url = new URL(rawUrl);
+    if (url.protocol !== "https:") return null;
+    if (url.username || url.password) return null;
+    if (url.hostname !== "poe.com") return null;
+    if (url.search || url.hash) return null;
+    const match = url.pathname.match(/^\/s\/[^/]+$/);
+    if (!match) return null;
+    return `https://poe.com${url.pathname}`;
+  } catch {
+    return null;
+  }
+}
+```
+
+The rules:
+
+| Rule | Why |
+|---|---|
+| `https:` only | SSRF hardening — no `file:`, `gopher:`, etc. |
+| No userinfo (`user:pass@...`) | Prevents passing credentials in the URL. |
+| Host must be `poe.com` | SSRF hardening — no arbitrary outbound fetches. |
+| No query string or fragment | Prevents smuggling extra params into the upstream fetch. |
+| Path matches `^/s/[^/]+$` | Exactly one path segment after `/s/`. |
+
+## Why it's duplicated
+
+It would be nice to share the validator. The current shape of the project
+doesn't have a shared module (no `lib/` or `shared/` folder), and pulling
+one in just for one function is overkill. If a third caller shows up,
+extract it then.
+
+:::warning
+**If you change the validator, change it in both files.** There's no
+test catching drift.
+
+- `fullstack/server.ts` — `normalizeShareUrl` near the top.
+- `fullstack/app.ts` — `normalizeShareUrl` near the top.
+:::
+
+## What callers get back
+
+`normalizeShareUrl` returns the **canonical** URL (`https://poe.com/<path>`
+without query or fragment) on success, or `null` on failure. Callers
+forward the canonical form to the upstream fetch / API request so that
+identical shares get identical requests regardless of pasted formatting.

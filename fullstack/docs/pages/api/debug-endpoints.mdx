@@ -1,0 +1,79 @@
+---
+title: Debug endpoints
+description: Introspection routes useful when an asset 404s or a route disappears.
+---
+
+# Debug endpoints
+
+Two JSON endpoints expose the compiled binary's internals. They're meant
+for development and incident response — no state is mutated.
+
+:::info
+There's nothing sensitive in the responses. Both endpoints are safe to
+leave enabled in production, but you can strip them at a reverse proxy if
+you'd rather not advertise them.
+:::
+
+## `GET /api/embedded`
+
+Lists every file embedded into the binary.
+
+```json
+{
+  "count": 11,
+  "files": [
+    { "name": "faviconpng-jd5gacpj.png", "size": 3421, "type": "image/png" },
+    { "name": "og-abc12345.png", "size": 81230, "type": "image/png" },
+    { "name": "index.html", "size": 7632, "type": "text/html" }
+  ]
+}
+```
+
+`name` is the post-bundle filename (Bun's content-hashed form). Use this
+when you've added a static asset and need to confirm the bundler actually
+picked it up.
+
+## `GET /api/routes`
+
+Lists every URL the server answers.
+
+```json
+{
+  "explicit_count": 8,
+  "explicit": [
+    "/",
+    "/api/embedded",
+    "/api/routes",
+    "/api/share",
+    "/robots.txt",
+    "/sitemap.xml",
+    "/static/faviconpng.png",
+    "/static/og.png"
+  ],
+  "implicit_via_html_bundler_count": 11,
+  "implicit_via_html_bundler": [
+    "/faviconpng-jd5gacpj.png",
+    "/og-abc12345.png"
+  ]
+}
+```
+
+- **`explicit`** — routes defined in `server.ts` (the same list you'd find
+  by grepping `routes`).
+- **`implicit_via_html_bundler`** — routes Bun adds automatically while
+  serving `index.html`. These change on every build because of the
+  content hash. External references should use the `/static/*` stable
+  aliases instead.
+
+## When they're useful
+
+- An OG image URL works on one build and 404s on the next → hit
+  `/api/embedded` to see if it's even in the bundle.
+- A new static asset isn't being served → `/api/routes` tells you whether
+  the server learned about it.
+- Adjusting the hash-normalization regex → compare `explicit` vs
+  `implicit_via_html_bundler` to verify every hashed name has a stable
+  alias.
+
+See [Hash-tolerant static routing](/concepts/hash-tolerant-static-routing)
+for how the two name spaces relate.

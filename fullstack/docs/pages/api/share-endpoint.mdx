@@ -1,0 +1,69 @@
+---
+title: GET /api/share
+description: Fetch a Poe share page and return its attachment URLs plus the raw __NEXT_DATA__ payload.
+---
+
+# `GET /api/share`
+
+The one endpoint that does real work. Everything else on the server is
+static.
+
+## Request
+
+```http
+GET /api/share?url=https%3A%2F%2Fpoe.com%2Fs%2FabCdEf12345
+```
+
+| Param | Type | Required | Notes |
+|---|---|---|---|
+| `url` | string | yes | Must URL-encode to `https://poe.com/s/<id>`. See [Share-URL validation](/concepts/share-url-validation) for the exact rules. |
+
+No body, no auth, no headers required.
+
+## Success response
+
+**`200 OK`**
+
+```json
+{
+  "urls": [
+    "https://pfst.cf2.poecdn.net/base/image/abc.png",
+    "https://.../video.mp4"
+  ],
+  "nextData": "{\"props\":{\"pageProps\":{...}}}"
+}
+```
+
+| Field | Type | Notes |
+|---|---|---|
+| `urls` | `string[]` | Deduplicated list of attachment URLs, in order of first appearance. Prefers `attachment.file.url` over `attachment.url` when both exist. |
+| `nextData` | `string` | The raw `__NEXT_DATA__` script body as a JSON-encoded string. Feed it to `parseChatMessages` client-side — see [Chat parsing](/concepts/chat-parsing). |
+
+## Error responses
+
+| Status | `error` value | When |
+|---|---|---|
+| `400` | `Missing url parameter` | No `?url=` at all. |
+| `400` | `Invalid share URL. Expected https://poe.com/s/<share-id>.` | Didn't pass [validation](/concepts/share-url-validation). |
+| `404` | `Share not found` | Poe returned 404 for the share URL. |
+| *upstream* | `Upstream error` | Any other non-2xx from Poe. Status code mirrors Poe's. |
+| `502` | `Missing response body` | Poe responded 2xx with no body. |
+| `502` | `Missing __NEXT_DATA__ payload` | HTML streamed through fine but the expected `<script>` wasn't there. |
+| `502` | `Invalid __NEXT_DATA__ payload` | The script body wasn't valid JSON. |
+| `502` | `Fetch failed: ...` | Network-level failure reaching Poe. |
+
+## Example
+
+```bash
+curl -s 'http://localhost:3000/api/share?url=https%3A%2F%2Fpoe.com%2Fs%2FExAmPlE' \
+  | jq '.urls | length'
+```
+
+## Implementation notes
+
+- The upstream fetch uses a desktop Chrome user-agent. Poe sometimes serves
+  different markup to bot-flagged clients.
+- `Connection: close` is sent on the upstream fetch to keep Bun's socket
+  pool lean under burst load.
+- The `__NEXT_DATA__` body is consumed via `HTMLRewriter` streaming — no
+  full-response buffering. See [Next-data extraction](/concepts/next-data-extraction).

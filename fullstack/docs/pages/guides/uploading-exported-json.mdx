@@ -1,0 +1,102 @@
+---
+title: Uploading exported JSON
+description: Re-render or re-zip a chat without going back to poe.com.
+---
+
+# Uploading exported JSON
+
+Every zip produced by `export.tools` includes a `next-data.json` file — the
+raw `__NEXT_DATA__` payload pulled from the Poe share page. You can feed it
+back into the app later to re-render the chat or re-download the attachments
+without re-fetching the share URL.
+
+## How to upload
+
+Click the upload icon in the header (or the **Upload next-data.json** menu
+item after a share is loaded). Pick any JSON file matching one of the two
+supported shapes.
+
+## Supported shapes
+
+The parser in [`app.ts`](https://github.com/frontboat/poe-export-tools/blob/main/fullstack/app.ts)
+accepts two root shapes and disambiguates by structure.
+
+:::code-group
+
+```json [Poe native]
+{
+  "props": {
+    "pageProps": {
+      "data": {
+        "mainQuery": {
+          "chatShare": {
+            "messages": [
+              {
+                "author": "human",
+                "text": "Generate a cat",
+                "attachments": []
+              },
+              {
+                "author": "claude",
+                "text": "Here you go",
+                "attachments": [
+                  { "url": "https://pfst.cf2.poecdn.net/base/image/abc.png" },
+                  { "file": { "url": "https://.../video.mp4" } }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+```json [Simplified export]
+{
+  "messages": [
+    { "role": "user", "content": "Generate a cat", "attachments": [] },
+    {
+      "role": "assistant",
+      "content": "Here you go",
+      "attachments": [
+        { "url": "https://pfst.cf2.poecdn.net/base/image/abc.png" }
+      ]
+    }
+  ]
+}
+```
+
+:::
+
+## Role normalization
+
+Both formats collapse to the same internal `ChatMessage.role` field:
+
+| Input | Internal role |
+|---|---|
+| `author: "human"` (Poe) | `"human"` |
+| Any other `author` (Poe) | `"bot"` |
+| `role: "user"` (simplified) | `"human"` |
+| Any other `role` (simplified) | `"bot"` |
+
+## Attachment resolution
+
+Inside a Poe message, attachments can appear as either `{ url }` or
+`{ file: { url } }`. The parser prefers `file.url` and falls back to `url`.
+The simplified format supports only `{ url }`.
+
+Attachment URLs are deduplicated per-message and globally across the chat.
+The first occurrence wins.
+
+## When the upload fails
+
+The notice bar at the top of the page shows the parse error. The most common
+causes:
+
+- **"Invalid JSON payload"** — malformed JSON.
+- **"Chat data missing from JSON payload"** — the root didn't match either
+  shape. Check the top-level keys.
+
+The raw text is kept in memory so you can try again without re-uploading.

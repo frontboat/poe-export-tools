@@ -1,0 +1,84 @@
+---
+title: Hash-tolerant static routing
+description: How /static/og.png maps onto Bun's content-hashed bundle names.
+---
+
+# Hash-tolerant static routing
+
+Bun's HTML bundler content-hashes every asset it emits:
+`faviconpng.png` becomes `faviconpng-jd5gacpj.png` in the compiled bundle.
+That's great for caching — but external references (OG image, sitemap,
+favicon tags in `<meta>`) need **stable** URLs that don't change every
+build.
+
+The server bridges the two worlds with a small normalizer.
+
+## The route builder
+
+```ts
+// server.ts
+const staticRoutes: Record<string, Response> = {};
+for (const blob of embeddedFiles) {
+  const rawName = (blob as Blob & { name: string }).name
+    .replace(/\\/g, "/")
+    .split("/")
+    .pop();
+  if (!rawName) continue;
+  if (rawName.endsWith(".html")) continue;
+  if (rawName.startsWith("chunk-")) continue;
+
+  // Normalize hashed names (faviconpng-jd5gacpj.png) to their stable form.
+  const name = rawName.replace(/-[a-z0-9]{8}\./, ".");
+  staticRoutes[`/static/${name}`] = new Response(blob);
+}
+```
+
+Every embedded asset is exposed twice:
+
+- At its **stable** path under `/static/<name>` — stripped of the hash,
+  set up by this loop.
+- At its **hashed** path at the root (`/faviconpng-jd5gacpj.png`) — added
+  automatically by Bun's HTML bundler when it serves `index.html`.
+
+## The regex
+
+```ts
+/-[a-z0-9]{8}\./
+```
+
+Bun uses an **alphanumeric** hash (a-z and 0-9, not hex). The regex matches
+exactly eight chars preceded by `-` and followed by `.`, between the base
+name and the extension. It's deliberately not anchored — the same pattern
+can appear inside filenames that intentionally contain hyphens.
+
+## When to use `/static/`
+
+Any URL that lives outside the bundler's view needs the stable form:
+
+- `<meta property="og:image" content="https://export.tools/static/og.png">`
+- `<link rel="manifest" href="/static/manifest.json">`
+- Sitemap / robots / external links to icons.
+
+The bundler traces `<link rel="stylesheet">` and `<script src="">` —
+those you can (and should) leave as-is so you get cache-busting via the
+hash.
+
+## Adding a new static asset
+
+1. Drop the file into `fullstack/static/`.
+2. If the file is referenced only from `<meta>`, `manifest.json`, or
+   similar untraced locations, add an explicit import to `server.ts`:
+   ```ts
+   import "./static/new-asset.png" with { type: "file" };
+   ```
+3. Reference it by its **un-hashed** name under `/static/`.
+
+Without step 2, the bundler won't embed the file and `/static/new-asset.png`
+returns 404.
+
+## Debug it
+
+[`/api/embedded`](/api/debug-endpoints) lists every embedded file by its
+hashed name. [`/api/routes`](/api/debug-endpoints) lists both the stable
+`/static/*` routes and the implicit hashed routes from the HTML bundler.
+Useful when an asset 404s and you can't tell if it was embedded at all.

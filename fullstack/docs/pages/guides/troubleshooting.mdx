@@ -1,0 +1,63 @@
+---
+title: Troubleshooting
+description: The handful of ways export.tools can fail, and what to do about them.
+---
+
+# Troubleshooting
+
+## "Invalid share URL"
+
+The server rejects anything that isn't exactly `https://poe.com/s/<id>` with
+no query string, no fragment, and no auth. Strip tracking params before
+pasting.
+
+The client runs the same validation before sending. See
+[Share-URL validation](/concepts/share-url-validation).
+
+## "Share not found" (404)
+
+Poe returned 404 for the share URL. Either the ID is wrong or the share was
+deleted.
+
+## "Missing __NEXT_DATA__ payload" (502)
+
+Poe served the page but it didn't include the `<script id="__NEXT_DATA__">`
+block the server expects. This happens when:
+
+- Poe has changed its HTML (they move fast — open an issue).
+- The response was intercepted by a CDN error page.
+- The request was rate-limited.
+
+## "Invalid __NEXT_DATA__ payload" (502)
+
+The server found the script but JSON parsing failed. Same causes as above,
+plus the possibility of a truncated response. The server logs the parse
+error — check container logs.
+
+## "Fetch failed: ..." (502)
+
+Network-level error reaching `poe.com`. Check the container's egress rules
+and DNS.
+
+## Attachment download fails mid-zip
+
+The browser fetches each attachment directly from Poe's CDN. If a URL has
+expired or Poe's CDN blocks your client (some CDNs filter by `User-Agent`
+or region), `client-zip` throws and the download button re-enables. Try
+again, or upload the `next-data.json` on a different network.
+
+## Clipboard access blocked
+
+The paste icon reads from the clipboard via `navigator.clipboard.readText()`.
+Browsers require a user gesture plus HTTPS (or localhost). If permission is
+denied, paste the URL manually — the input has focus.
+
+## Nothing renders after a successful fetch
+
+The chat had messages but no attachments. The grid is empty by design.
+Switch to chat view from the menu to see the text.
+
+## The binary won't build on macOS
+
+`build.ts` targets Linux by default. See
+[Local development › macOS dev](/guides/local-development#local-development).

@@ -1,0 +1,76 @@
+---
+title: Architecture
+description: Where the work happens and what each file is responsible for.
+---
+
+# Architecture
+
+`export.tools` is split across a thin server and a slightly heavier client.
+Nothing in between.
+
+```
+ Browser                                   Server
+┌─────────────────────────────────┐       ┌────────────────────────────┐
+│                                 │       │                            │
+│   app.ts                        │  GET  │   server.ts                │
+│   ├─ paste share URL            ├──────►│   /api/share               │
+│   ├─ fetch /api/share           │       │   ├─ validate URL          │
+│   ├─ render grid / chat         │       │   ├─ fetch poe.com HTML    │
+│   ├─ parse dual JSON formats    │◄──────┤   ├─ HTMLRewriter extract  │
+│   └─ build zip via client-zip   │ JSON  │   └─ return urls + payload │
+│         │                       │       │                            │
+│         └─ fetch each URL ──────┼───────┼──► poe.com CDN             │
+│                                 │       │                            │
+└─────────────────────────────────┘       └────────────────────────────┘
+```
+
+The server never fetches the attachments. It only reads the share page once
+per request and returns a list of URLs.
+
+## Files in `fullstack/`
+
+| File | Role |
+|---|---|
+| `server.ts` | Bun HTTP server. Static routes, `/api/share`, debug endpoints. |
+| `app.ts` | Frontend. DOM wiring, state, rendering, zip streaming. |
+| `index.html` | Entry HTML. Meta tags, PWA manifest link, form markup. |
+| `styles.css` | Theme, layout, grid/chat modes. |
+| `build.ts` | `Bun.build` config → single-file binary. |
+| `static/` | PWA icons, OG image, favicons, `manifest.json`. |
+| `Dockerfile` | Multi-stage build → Debian slim. |
+| `docs/` | This site (vocs). Not embedded in the binary. |
+
+## Why vanilla TS on the client?
+
+No framework. The UI is small (one input, one grid, one chat view, one
+menu), and the state machine is maybe a dozen transitions. Adding React or
+Vue would multiply the bundle size without buying anything back.
+
+If you're adding UI, stay on plain DOM APIs — `document.querySelector`,
+`Element.classList`, `DocumentFragment`. See the patterns in
+[`app.ts`](https://github.com/frontboat/poe-export-tools/blob/main/fullstack/app.ts).
+
+## Data flow (happy path)
+
+1. User pastes `https://poe.com/s/abc123` and submits the form.
+2. Client calls `GET /api/share?url=...`.
+3. Server validates the URL, fetches Poe, streams the response through
+   `HTMLRewriter`, captures the `__NEXT_DATA__` JSON, parses it, and
+   returns `{ urls, nextData }`.
+4. Client runs `parseChatMessages(nextData)` to build `ChatMessage[]`.
+5. Grid renders thumbnails; chat view renders the full conversation.
+6. On **Download zip**, the client streams each URL through
+   [`client-zip`](https://github.com/Touffy/client-zip) and triggers a
+   `<a download>` click.
+
+## Extending
+
+Places to hook in new behavior:
+
+- **New API route** → add a key to `routes` in `server.ts`.
+- **New static asset** → drop into `static/`, reference by un-hashed name.
+  Add an explicit `import "./static/…" with { type: "file" }` in
+  `server.ts` if it's only referenced from `<meta>` or `manifest.json`.
+- **New JSON format** → add a branch to `parseChatMessages` in `app.ts`.
+  See [Chat parsing](/concepts/chat-parsing).
+- **New download format** → replace the `downloadZip` call in `app.ts`.

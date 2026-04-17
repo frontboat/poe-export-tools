@@ -1,0 +1,99 @@
+---
+title: Local development
+description: Run the dev server, iterate on the UI, and build a native binary for your platform.
+---
+
+# Local development
+
+All commands run from `fullstack/`.
+
+## Install
+
+```bash
+bun install
+```
+
+A single runtime dep ([`client-zip`](https://github.com/Touffy/client-zip))
+plus `@types/bun`.
+
+## Run the dev server
+
+```bash
+bun run server.ts
+```
+
+Serves on `http://localhost:3000`. Override the port with `PORT=8080 bun run server.ts`.
+
+Bun's HTML bundler handles `index.html`, `app.ts`, and `styles.css` in dev
+mode — no separate build step, and hot reload works out of the box.
+
+## Build the binary
+
+```bash
+bun run build.ts
+```
+
+Produces `./fullstack`, a single-file executable containing the server, the
+client bundle, and every static asset.
+
+:::warning[macOS dev]
+`build.ts` hard-codes `target: "bun-linux-x64"` because that's what Railway
+needs. Building on Apple Silicon fails with a "target not supported" error.
+Flip the target before building locally:
+
+```ts
+// build.ts
+compile: {
+  target: "bun-darwin-arm64-modern", // [!code ++]
+  target: "bun-linux-x64",           // [!code --]
+  // ...
+}
+```
+
+**Don't commit the flip.** See [Building the binary](/guides/building-the-binary)
+for the full set of compile flags.
+:::
+
+## Project layout
+
+```
+fullstack/
+├── server.ts        # Bun HTTP server + /api/share
+├── app.ts           # Vanilla-TS frontend
+├── index.html       # Entry HTML (bundled)
+├── styles.css       # Theme + layout
+├── build.ts         # Bun.build config
+├── static/          # PWA icons, OG image, favicons, manifest
+├── docs/            # Vocs documentation site (this site)
+└── Dockerfile       # Multi-stage build → Debian slim
+```
+
+## TypeScript strictness
+
+`tsconfig.json` enables:
+
+- `strict`
+- `noUncheckedIndexedAccess` — array/object indexing returns `T | undefined`
+- `noUnusedLocals` and `noUnusedParameters` — dead code fails the build
+
+Plan for the first of these — every `urls[i]` needs a null check or a
+non-null assertion. The codebase leans on optional chaining and early
+returns; follow that pattern.
+
+## No test suite
+
+There are no tests, no linter, and no formatter. The strict TypeScript
+config is the only automated check. Run `bunx tsc --noEmit` to type-check
+without compiling.
+
+## Dev tooling for the docs
+
+The `docs/` subtree is a [vocs](https://vocs.dev) site:
+
+```bash
+bun run docs:dev       # http://localhost:5173
+bun run docs:build     # static output in docs/dist
+bun run docs:preview   # serve the build locally
+```
+
+The docs are independent of the main binary — they don't get embedded.

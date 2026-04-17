@@ -1,0 +1,38 @@
+---
+title: HTTP endpoints
+description: Every route the server exposes, at a glance.
+---
+
+# HTTP endpoints
+
+The server is small. Eight routes, one of which does real work.
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/` | Serves the HTML entry (and its bundled JS/CSS). |
+| GET | `/<hashed-asset>` | Bun HTML bundler serves hashed assets at the root. |
+| GET | `/static/<name>` | Hash-stripped stable routes for embedded assets. See [Hash-tolerant static routing](/concepts/hash-tolerant-static-routing). |
+| GET | `/robots.txt` | SEO directive, references `/sitemap.xml`. |
+| GET | `/sitemap.xml` | Single-URL sitemap with a dynamic `<lastmod>`. |
+| GET | [`/api/share`](/api/share-endpoint) | Fetches a Poe share page and returns attachment URLs + raw payload. **The only endpoint that talks to an external service.** |
+| GET | [`/api/embedded`](/api/debug-endpoints) | Lists every file embedded into the binary. |
+| GET | [`/api/routes`](/api/debug-endpoints) | Lists explicit routes + implicit Bun HTML bundler routes. |
+
+## Conventions
+
+- **All responses are JSON** except for static files, `/robots.txt`, and
+  `/sitemap.xml`.
+- **All endpoints are `GET`.** There's no state on the server to mutate.
+- **No authentication, no cookies, no CORS headers.** The server is fine
+  behind any reverse proxy; add headers there if you need them.
+
+## Error shape
+
+Every JSON error response looks like:
+
+```json
+{ "error": "human-readable message" }
+```
+
+The status code carries the category (`4xx` = bad request, `502` = upstream
+problem). Individual endpoints document the specific errors they emit.

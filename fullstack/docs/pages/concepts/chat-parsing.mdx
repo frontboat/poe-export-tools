@@ -1,0 +1,104 @@
+---
+title: Chat parsing
+description: How the client converts two different JSON shapes into one render-ready format.
+---
+
+# Chat parsing
+
+The client accepts **two** JSON shapes and converges them into a single
+internal `ChatMessage[]`:
+
+- **Poe native** — the raw `__NEXT_DATA__` payload the server returns.
+- **Simplified export** — a hand-writable / third-party shape used for
+  re-uploads.
+
+Both go through `parseChatMessages` in
+[`app.ts`](https://github.com/frontboat/poe-export-tools/blob/main/fullstack/app.ts).
+
+## The dispatch
+
+```ts
+function parseChatMessages(raw: string | null): ChatParseResult {
+  if (!raw) return { messages: [], error: null };
+
+  let data: PoeNextData | ExportData;
+  try {
+    data = JSON.parse(raw) as PoeNextData | ExportData;
+  } catch (error) {
+    return { messages: [], error: `Invalid JSON payload: ${...}` };
+  }
+
+  const nextDataMessages =
+    (data as PoeNextData)?.props?.pageProps?.data?.mainQuery?.chatShare?.messages;
+  if (Array.isArray(nextDataMessages)) {
+    return { messages: nextDataMessages.map(...), error: null };
+  }
+
+  const exportMessages = (data as ExportData)?.messages;
+  if (Array.isArray(exportMessages)) {
+    return { messages: exportMessages.map(...), error: null };
+  }
+
+  return { messages: [], error: "Chat data missing from JSON payload." };
+}
+```
+
+The discriminator is **structural**: if the deep Poe path exists, use it;
+else if `.messages` exists at the root, use the simplified shape; else
+error.
+
+## Internal shape
+
+```ts
+type ChatMessage = {
+  role: "human" | "bot";
+  text: string;
+  attachments: string[];  // URL strings, deduplicated per-message
+};
+```
+
+The UI only ever renders `ChatMessage[]`. Neither input format leaks past
+`parseChatMessages`.
+
+## Role mapping
+
+| Input | `ChatMessage.role` |
+|---|---|
+| Poe `author === "human"` | `"human"` |
+| Poe anything else | `"bot"` |
+| Simplified `role === "user"` | `"human"` |
+| Simplified anything else | `"bot"` |
+
+Anything that isn't the user is bucketed as `"bot"` — the UI doesn't
+distinguish between different assistant models.
+
+## Attachment resolution
+
+**Poe native:**
+```ts
+const url = attachment?.file?.url ?? attachment?.url;
+```
+
+Poe sometimes wraps URLs in `{ file: { url } }` and sometimes in `{ url }`.
+`file.url` wins when both are present.
+
+**Simplified export:**
+```ts
+const url = attachment?.url;
+```
+
+Only the flat shape is supported.
+
+Both paths dedupe per-message with a `Set`.
+
+## Global deduplication for the grid
+
+`applyNextData` (also in `app.ts`) walks every parsed message and builds a
+flat, globally deduplicated `urls[]` for the media grid. The chat view
+keeps per-message attachments so the same image can appear in its correct
+conversational position even if referenced across turns.
+
+## Extending to a new format
+
+Add another branch to the structural dispatch. Keep the output shape
+(`ChatMessage`) stable and the rest of the app adjusts automatically.

@@ -1,0 +1,114 @@
+---
+title: Data shapes
+description: Every TypeScript type the server and client exchange.
+---
+
+# Data shapes
+
+The types are split between `server.ts` and `app.ts`. The server-side set
+is narrower — it only extracts URLs, not chat text. The client handles
+both Poe native and simplified export shapes.
+
+## Poe native (input)
+
+```ts
+type PoeAttachment = {
+  url?: string;
+  file?: {
+    url?: string;
+  };
+};
+
+type PoeMessage = {
+  author?: string;          // "human" or any other string
+  text?: string;
+  attachments?: PoeAttachment[];
+};
+
+type PoeNextData = {
+  props?: {
+    pageProps?: {
+      data?: {
+        mainQuery?: {
+          chatShare?: {
+            messages?: PoeMessage[];
+          };
+        };
+      };
+    };
+  };
+};
+```
+
+Every level is optional because we don't trust Poe's schema to hold
+forever. The parser short-circuits to an empty result if the deep path
+is missing.
+
+## Simplified export (input)
+
+Used for re-uploads and hand-crafted JSON:
+
+```ts
+type ExportAttachment = {
+  url?: string;
+};
+
+type ExportMessage = {
+  role?: string;            // "user" or any other string
+  content?: string;
+  attachments?: ExportAttachment[];
+};
+
+type ExportData = {
+  messages?: ExportMessage[];
+};
+```
+
+No `file.url` wrapper here — just `url`.
+
+## Internal representation
+
+After parsing, everything collapses into:
+
+```ts
+type ChatMessage = {
+  role: "human" | "bot";
+  text: string;
+  attachments: string[];    // URLs, deduplicated per-message
+};
+
+type ChatParseResult = {
+  messages: ChatMessage[];
+  error: string | null;
+};
+```
+
+The UI only knows about `ChatMessage`.
+
+## Server response
+
+```ts
+// GET /api/share success
+{
+  urls: string[];       // globally deduplicated URLs
+  nextData: string;     // raw __NEXT_DATA__ script body
+}
+
+// GET /api/share error
+{
+  error: string;
+}
+```
+
+## A note on indexing
+
+With `noUncheckedIndexedAccess`, every array/object indexing returns
+`T | undefined`. Expect to see patterns like:
+
+```ts
+const segment = url.pathname.split("/").pop() ?? "";
+const first = attachments[0];  // PoeAttachment | undefined
+```
+
+This is the whole reason `buildAttachmentName` in `app.ts` has that
+`??` default for the base name — the index access could always be missing.
