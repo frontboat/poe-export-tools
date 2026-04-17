@@ -5,29 +5,10 @@ layout: landing
 import { HomePage } from 'vocs/components'
 
 <HomePage.Root>
-  <HomePage.Tagline>Export every attachment from a Poe chat share link.</HomePage.Tagline>
-  <HomePage.Description>
-    Paste a `poe.com/s/<id>` URL and get back every image, video, and file as a zip.
-    The attachments never touch a server you don't control — your browser fetches
-    them directly and builds the archive locally.
-  </HomePage.Description>
+  <HomePage.Logo />
+  <HomePage.Tagline>export.tools</HomePage.Tagline>
   <HomePage.Buttons>
     <HomePage.Button href="/getting-started" variant="accent">Get started</HomePage.Button>
-    <HomePage.Button href="https://export.tools">Open the live app</HomePage.Button>
     <HomePage.Button href="https://github.com/frontboat/poe-export-tools">GitHub</HomePage.Button>
   </HomePage.Buttons>
 </HomePage.Root>
-
-## What it is
-
-`export.tools` is a single-binary Bun web app. The server has one job: fetch a Poe
-share page, pull the embedded `__NEXT_DATA__` JSON out of the HTML, and hand
-back the list of attachment URLs. Everything after that happens in your
-browser — rendering, previewing, and zipping.
-
-## What it is not
-
-- Not a Poe scraper — it only reads the HTML Poe already serves publicly.
-- Not a proxy — attachments are fetched by your browser, directly from Poe's CDN.
-- Not a SaaS — deploy the binary yourself in under a minute, or use the hosted
-  instance at [export.tools](https://export.tools).
