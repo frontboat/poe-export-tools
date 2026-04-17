@@ -192,6 +192,16 @@ const server = serve({
       `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url>\n    <loc>https://export.tools/</loc>\n    <lastmod>${siteLastMod}</lastmod>\n  </url>\n</urlset>\n`,
       { headers: { "Content-Type": "application/xml" } }
     ),
+    "/api/embedded": {
+      GET() {
+        const files = embeddedFiles.map((blob) => ({
+          name: (blob as Blob & { name: string }).name,
+          size: blob.size,
+          type: blob.type,
+        }));
+        return Response.json({ count: files.length, files });
+      },
+    },
     "/api/share": {
       async GET(req) {
         const requestUrl = new URL(req.url);
