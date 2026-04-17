@@ -19,7 +19,6 @@ RUN apt-get update \
 
 WORKDIR /app
 COPY --from=build --chown=app:app /app/fullstack /app/fullstack
-COPY --from=build --chown=app:app /app/static /app/static
 
 USER 1001
 ENV PORT=3000

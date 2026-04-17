@@ -5,7 +5,7 @@ const staticFiles = Array.from(new Glob("./static/**/*").scanSync(".")).filter(
 );
 
 await Bun.build({
-  entrypoints: ["./server.ts"],
+  entrypoints: ["./server.ts", ...staticFiles],
   target: "bun",
   loader: {
     ".png": "file",
@@ -14,8 +14,11 @@ await Bun.build({
     ".json": "file",
     ".webmanifest": "file",
   },
+  naming: {
+    asset: "[name].[ext]",
+  },
   compile: {
-    target: "bun-linux-x64", //change this to bun-darwin-arm64-modern for deploying on a mac in local dev. check out bun --compile docs 
+    target: "bun-linux-x64", //change this to bun-darwin-arm64-modern for deploying on a mac in local dev. check out bun --compile docs
     execArgv: ["--smol"],
     outfile: "./fullstack",
   },
