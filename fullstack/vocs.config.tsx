@@ -6,13 +6,8 @@ export default defineConfig({
   description:
     "Download images, videos, and files from any poe.com share link. Runs in your browser — nothing is uploaded.",
   rootDir: "docs",
-  iconUrl: { light: "/faviconsvg.svg", dark: "/faviconsvg.svg" },
-  logoUrl: { light: "/faviconsvg.svg", dark: "/faviconsvg.svg" },
+  iconUrl: "/faviconsvg.svg",
   ogImageUrl: "https://export.tools/static/og.png",
-  theme: {
-    accentColor: "#6366f1",
-    colorScheme: "system",
-  },
   socials: [
     { icon: "github", link: "https://github.com/frontboat/poe-export-tools" },
   ],
