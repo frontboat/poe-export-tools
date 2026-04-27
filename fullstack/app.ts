@@ -49,13 +49,19 @@ type PoeMessage = {
   attachments?: PoeAttachment[];
 };
 
+type PoeMessageEdge = {
+  node?: PoeMessage;
+};
+
 type PoeNextData = {
   props?: {
     pageProps?: {
       data?: {
         mainQuery?: {
           chatShare?: {
-            messages?: PoeMessage[];
+            messagesConnection?: {
+              edges?: PoeMessageEdge[];
+            };
           };
         };
       };
@@ -357,11 +363,13 @@ function parseChatMessages(raw: string | null): ChatParseResult {
     return { messages: [], error: `Invalid JSON payload: ${message}` };
   }
 
-  const nextDataMessages =
-    (data as PoeNextData)?.props?.pageProps?.data?.mainQuery?.chatShare?.messages;
-  if (Array.isArray(nextDataMessages)) {
+  const nextDataEdges =
+    (data as PoeNextData)?.props?.pageProps?.data?.mainQuery?.chatShare?.messagesConnection
+      ?.edges;
+  if (Array.isArray(nextDataEdges)) {
     return {
-      messages: nextDataMessages.map((message) => {
+      messages: nextDataEdges.map((edge) => {
+        const message = edge?.node;
         const attachments: string[] = [];
         if (Array.isArray(message?.attachments)) {
           const seen = new Set<string>();

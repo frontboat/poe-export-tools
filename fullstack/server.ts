@@ -113,13 +113,19 @@ type PoeMessage = {
   attachments?: PoeAttachment[];
 };
 
+type PoeMessageEdge = {
+  node?: PoeMessage;
+};
+
 type PoeNextData = {
   props?: {
     pageProps?: {
       data?: {
         mainQuery?: {
           chatShare?: {
-            messages?: PoeMessage[];
+            messagesConnection?: {
+              edges?: PoeMessageEdge[];
+            };
           };
         };
       };
@@ -128,11 +134,12 @@ type PoeNextData = {
 };
 
 function collectAttachmentUrls(nextData: PoeNextData): string[] {
-  const messages = nextData?.props?.pageProps?.data?.mainQuery?.chatShare?.messages;
-  if (!Array.isArray(messages)) return [];
+  const edges =
+    nextData?.props?.pageProps?.data?.mainQuery?.chatShare?.messagesConnection?.edges;
+  if (!Array.isArray(edges)) return [];
   const urls = new Set<string>();
-  for (const message of messages) {
-    const attachments = message?.attachments;
+  for (const edge of edges) {
+    const attachments = edge?.node?.attachments;
     if (!Array.isArray(attachments)) continue;
     for (const attachment of attachments) {
       const url = attachment?.file?.url ?? attachment?.url;
