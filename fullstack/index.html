@@ -1,28 +1,31 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <title>Poe chat export — download images, videos & files from poe.com share links</title>
+    <title>Poe chat export — export and save your chats + images, videos & files from poe.com</title>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#000000" />
     <meta
       name="description"
-      content="Paste a poe.com/s/… share link and download every image, video, and file from the chat as a zip. Runs entirely in your browser — nothing is uploaded."
+      content="Tag @export-chat, @savechats, or @SaveThisChat in Poe, then upload the returned transcript to view the chat and download every image, video, and file as a zip."
     />
     <meta name="robots" content="index, follow" />
     <link rel="canonical" href="https://export.tools/" />
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="export.tools" />
+    <meta property="og:locale" content="en_US" />
     <meta property="og:url" content="https://export.tools/" />
-    <meta property="og:title" content="Poe chat export — download media from poe.com share links" />
+    <meta property="og:title" content="Poe chat export — export and save your chats + images, videos & files from poe.com" />
     <meta
       property="og:description"
-      content="Paste a poe.com/s/… share link and download every image, video, and file from the chat as a zip. Runs entirely in your browser — nothing is uploaded."
+      content="Tag @export-chat, @savechats, or @SaveThisChat in Poe, then upload the returned transcript to view the chat and download every message, image, video, and file as a zip."
     />
     <meta property="og:image" content="https://export.tools/static/og.png" />
+    <meta property="og:image:secure_url" content="https://export.tools/static/og.png" />
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="export.tools — download images, videos, and files from any poe.com chat share link" />
+    <meta property="og:image:alt" content="export.tools — save Poe chat conversations with @export-chat" />
     <meta property="og:logo" content="https://export.tools/static/faviconpng.png" />
     <meta name="application-name" content="export.tools" />
     <link rel="stylesheet" href="/styles.css" />
@@ -31,13 +34,16 @@
     <link rel="apple-touch-icon" sizes="180x180" href="/static/appletouchicon.png" />
     <meta name="apple-mobile-web-app-title" content="export.tools" />
     <!-- Twitter Meta Tags -->
-    <meta name="twitter:card" content="summary_large_image">
-    <meta property="twitter:domain" content="export.tools">
-    <meta property="twitter:url" content="https://export.tools/">
-    <meta name="twitter:title" content="Poe chat export — download media from poe.com share links">
-    <meta name="twitter:description" content="Paste a poe.com/s/… share link and download every image, video, and file from the chat as a zip. Runs entirely in your browser — nothing is uploaded.">
-    <meta name="twitter:image" content="https://export.tools/static/og.png">
-    <meta name="twitter:image:alt" content="export.tools — download images, videos, and files from any poe.com chat share link">
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:domain" content="export.tools" />
+    <meta name="twitter:url" content="https://export.tools/" />
+    <meta name="twitter:title" content="Poe chat export — export and save your chat messages + images, videos & files from poe.com" />
+    <meta
+      name="twitter:description"
+      content="Tag @export-chat, @savechats, or @SaveThisChat in Poe, then upload the returned transcript to view the chat and download every message, image, video, and file as a zip."
+    />
+    <meta name="twitter:image" content="https://export.tools/static/og.png" />
+    <meta name="twitter:image:alt" content="export.tools — save Poe chats with @export-chat and download attachments" />
     <link rel="manifest" href="/static/manifest.json" />
   </head>
   <body>
@@ -47,7 +53,7 @@
         id="left-action"
         class="icon-button"
         type="button"
-        aria-label="Upload next-data.json"
+        aria-label="Upload chat export"
       ></button>
       <form id="share-form" class="share-form" autocomplete="off">
         <input
@@ -98,7 +104,7 @@
             id="menu-upload"
             class="icon-button menu-button"
             type="button"
-            aria-label="Upload next-data.json"
+            aria-label="Upload chat export"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -149,26 +155,26 @@
     <main id="main" class="container">
       <section id="intro" class="intro" aria-labelledby="intro-title">
         <h1 id="intro-title" class="intro-title">
-          Download images, videos, and files from any <a class="intro-title-link" href="https://poe.com" rel="noopener" translate="no">poe.com</a> chat share link.
+          Save a <a class="intro-title-link" href="https://poe.com" rel="noopener" translate="no">poe.com</a> chat by tagging <code translate="no">@export-chat</code>, <code translate="no">@savechats</code>, or <code translate="no">@SaveThisChat</code>.
         </h1>
         <ol class="intro-steps">
           <li class="intro-step">
             <span class="intro-step-num">01</span>
-            <span class="intro-step-label">Paste</span>
-            <span class="intro-step-hint">a <code translate="no">poe.com/s/&lt;id&gt;</code> share link above</span>
+            <span class="intro-step-label">Tag</span>
+            <span class="intro-step-hint">mention one export bot in the Poe conversation you want to save</span>
           </li>
           <li class="intro-step">
             <span class="intro-step-num">02</span>
-            <span class="intro-step-label">Fetch</span>
-            <span class="intro-step-hint">the server reads the chat share once</span>
+            <span class="intro-step-label">Save</span>
+            <span class="intro-step-hint">download the transcript file returned by the bot</span>
           </li>
           <li class="intro-step">
             <span class="intro-step-num">03</span>
-            <span class="intro-step-label">Zip</span>
-            <span class="intro-step-hint">your browser bundles attachments locally</span>
+            <span class="intro-step-label">Upload</span>
+            <span class="intro-step-hint">load that file here to view the chat and bundle attachments locally</span>
           </li>
         </ol>
-        <p class="intro-foot">Runs in your browser — nothing is stored</p>
+        <p class="intro-foot">Share links still work — paste a <code translate="no">poe.com/s/&lt;id&gt;</code> URL above</p>
       </section>
       <div id="chat" class="chat-view is-hidden"></div>
       <div id="grid" class="media-grid"></div>
@@ -178,8 +184,8 @@
       name="upload-input"
       class="file-input"
       type="file"
-      accept="application/json,.json"
-      aria-label="Upload next-data.json"
+      accept="application/json,text/markdown,.json,.md"
+      aria-label="Upload chat export"
       tabindex="-1"
     />
     <script type="module" src="./app.ts"></script>

@@ -123,6 +123,7 @@ type PoeNextData = {
       data?: {
         mainQuery?: {
           chatShare?: {
+            messages?: PoeMessage[];
             messagesConnection?: {
               edges?: PoeMessageEdge[];
             };
@@ -134,22 +135,39 @@ type PoeNextData = {
 };
 
 function collectAttachmentUrls(nextData: PoeNextData): string[] {
+  const chatShare = nextData?.props?.pageProps?.data?.mainQuery?.chatShare;
   const edges =
-    nextData?.props?.pageProps?.data?.mainQuery?.chatShare?.messagesConnection?.edges;
-  if (!Array.isArray(edges)) return [];
+    chatShare?.messagesConnection?.edges;
   const urls = new Set<string>();
-  for (const edge of edges) {
-    const attachments = edge?.node?.attachments;
-    if (!Array.isArray(attachments)) continue;
-    for (const attachment of attachments) {
-      const url = attachment?.file?.url ?? attachment?.url;
-      if (typeof url === "string" && url.length > 0) {
-        urls.add(url);
-      }
+
+  if (Array.isArray(edges)) {
+    for (const edge of edges) {
+      collectMessageAttachmentUrls(edge?.node, urls);
+    }
+  }
+
+  if (Array.isArray(chatShare?.messages)) {
+    for (const message of chatShare.messages) {
+      collectMessageAttachmentUrls(message, urls);
     }
   }
 
   return [...urls];
+}
+
+function collectMessageAttachmentUrls(
+  message: PoeMessage | undefined,
+  urls: Set<string>
+) {
+  const attachments = message?.attachments;
+  if (!Array.isArray(attachments)) return;
+
+  for (const attachment of attachments) {
+    const url = attachment?.file?.url ?? attachment?.url;
+    if (typeof url === "string" && url.length > 0) {
+      urls.add(url);
+    }
+  }
 }
 async function fetchShareUrls(shareUrl: string) {
   const response = await fetch(shareUrl, {

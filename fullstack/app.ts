@@ -1,4 +1,5 @@
 import { downloadZip } from "client-zip";
+import { parseChatMessages, type ChatMessage } from "./chat-data";
 
 const form = document.querySelector<HTMLFormElement>("#share-form");
 const input = document.querySelector<HTMLInputElement>("#share-url");
@@ -15,13 +16,26 @@ const notice = document.querySelector<HTMLElement>("#notice");
 const intro = document.querySelector<HTMLElement>("#intro");
 
 const urls: string[] = [];
-let nextDataRaw: string | null = null;
+let sourceFile: SourceFile | null = null;
 let chatMessages: ChatMessage[] = [];
 let isChatView = false;
 let isLoading = false;
 let isMenuOpen = false;
 
 const videoExtensions = new Set(["mp4", "webm", "ogg", "mov", "m4v"]);
+const audioExtensions = new Set(["mp3", "wav", "m4a", "weba"]);
+const fileExtensions = new Set([
+  "csv",
+  "doc",
+  "docx",
+  "json",
+  "md",
+  "pdf",
+  "txt",
+  "xls",
+  "xlsx",
+  "zip",
+]);
 
 const icons = {
   upload:
@@ -34,64 +48,14 @@ const icons = {
     '<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-right-icon lucide-arrow-right"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>',
   ellipsis:
     '<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-ellipsis-vertical-icon lucide-ellipsis-vertical"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>',
+  file:
+    '<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-file-icon lucide-file"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg>',
 };
 
-type PoeAttachment = {
-  url?: string;
-  file?: {
-    url?: string;
-  };
-};
-
-type PoeMessage = {
-  author?: string;
-  text?: string;
-  attachments?: PoeAttachment[];
-};
-
-type PoeMessageEdge = {
-  node?: PoeMessage;
-};
-
-type PoeNextData = {
-  props?: {
-    pageProps?: {
-      data?: {
-        mainQuery?: {
-          chatShare?: {
-            messagesConnection?: {
-              edges?: PoeMessageEdge[];
-            };
-          };
-        };
-      };
-    };
-  };
-};
-
-type ExportAttachment = {
-  url?: string;
-};
-
-type ExportMessage = {
-  role?: string;
-  content?: string;
-  attachments?: ExportAttachment[];
-};
-
-type ExportData = {
-  messages?: ExportMessage[];
-};
-
-type ChatMessage = {
-  role: "human" | "bot";
-  text: string;
-  attachments: string[];
-};
-
-type ChatParseResult = {
-  messages: ChatMessage[];
-  error: string | null;
+type SourceFile = {
+  name: string;
+  raw: string;
+  type: string;
 };
 
 function setLoading(loading: boolean) {
@@ -161,7 +125,7 @@ function setMenuOpen(open: boolean) {
 }
 
 function hasContent() {
-  return urls.length > 0 || chatMessages.length > 0 || Boolean(nextDataRaw);
+  return urls.length > 0 || chatMessages.length > 0 || Boolean(sourceFile);
 }
 
 function updateHeaderState() {
@@ -176,7 +140,7 @@ function updateHeaderState() {
   setButtonIcon(
     leftButton,
     showContent ? icons.home : icons.upload,
-    showContent ? "Home" : "Upload next-data.json",
+    showContent ? "Home" : "Upload chat export",
     showContent ? "home" : "upload"
   );
   if (leftButton) leftButton.disabled = isLoading;
@@ -207,7 +171,7 @@ function updateHeaderState() {
   }
 
   if (menuDownload) {
-    menuDownload.disabled = isLoading || (urls.length === 0 && !nextDataRaw);
+    menuDownload.disabled = isLoading || (urls.length === 0 && !sourceFile);
   }
   if (menuUpload) {
     menuUpload.disabled = isLoading;
@@ -219,14 +183,17 @@ function updateHeaderState() {
   }
 }
 
-function describeAttachment(url: string, index?: number) {
-  let filename = "";
+function attachmentFilename(url: string) {
   try {
     const parsed = new URL(url);
-    filename = decodeURIComponent(parsed.pathname.split("/").pop() ?? "");
+    return decodeURIComponent(parsed.pathname.split("/").pop() ?? "");
   } catch {
-    filename = "";
+    return "";
   }
+}
+
+function describeAttachment(url: string, index?: number) {
+  const filename = attachmentFilename(url);
   if (filename) {
     return typeof index === "number"
       ? `Attachment ${index + 1}: ${filename}`
@@ -235,7 +202,12 @@ function describeAttachment(url: string, index?: number) {
   return typeof index === "number" ? `Attachment ${index + 1}` : "Attachment";
 }
 
-function createMediaAnchor(url: string, className: string, index?: number) {
+function createMediaAnchor(
+  url: string,
+  className: string,
+  index?: number,
+  loading: "eager" | "lazy" = "lazy"
+) {
   const label = describeAttachment(url, index);
   const anchor = document.createElement("a");
   anchor.className = className;
@@ -258,10 +230,26 @@ function createMediaAnchor(url: string, className: string, index?: number) {
     video.preload = "metadata";
     video.setAttribute("aria-label", label);
     preview.appendChild(video);
+  } else if (isAudioUrl(url)) {
+    const audio = document.createElement("audio");
+    audio.src = url;
+    audio.controls = true;
+    audio.preload = "metadata";
+    audio.setAttribute("aria-label", label);
+    preview.appendChild(audio);
+  } else if (isFileUrl(url)) {
+    const file = document.createElement("div");
+    file.className = "file-preview";
+    file.innerHTML = icons.file;
+
+    const name = document.createElement("span");
+    name.textContent = attachmentFilename(url) || "File";
+    file.appendChild(name);
+    preview.appendChild(file);
   } else {
     const img = document.createElement("img");
     img.src = url;
-    img.loading = "lazy";
+    img.loading = loading;
     img.alt = label;
     preview.appendChild(img);
   }
@@ -303,6 +291,9 @@ function renderChat(messages: ChatMessage[]) {
 
     const card = document.createElement("div");
     card.className = "chat-card";
+    if (message.attachments.length > 0) {
+      card.classList.add("chat-card-has-media");
+    }
 
     if (message.text) {
       const text = document.createElement("p");
@@ -315,7 +306,7 @@ function renderChat(messages: ChatMessage[]) {
       const media = document.createElement("div");
       media.className = "chat-media";
       message.attachments.forEach((url) => {
-        media.appendChild(createMediaAnchor(url, "chat-media-item"));
+        media.appendChild(createMediaAnchor(url, "chat-media-item", undefined, "eager"));
       });
       card.appendChild(media);
     }
@@ -327,8 +318,14 @@ function renderChat(messages: ChatMessage[]) {
   chat.appendChild(fragment);
 }
 
-function applyNextData(raw: string | null, fallbackUrls: string[] = []) {
-  nextDataRaw = raw;
+function applyChatData(
+  raw: string | null,
+  fallbackUrls: string[] = [],
+  sourceName = "chat-export.json"
+) {
+  sourceFile = raw
+    ? { name: sourceName, raw, type: contentTypeForSourceName(sourceName) }
+    : null;
   const parsed = parseChatMessages(raw);
   chatMessages = parsed.messages;
   urls.length = 0;
@@ -353,72 +350,10 @@ function applyNextData(raw: string | null, fallbackUrls: string[] = []) {
   setViewMode(nextView);
 }
 
-function parseChatMessages(raw: string | null): ChatParseResult {
-  if (!raw) return { messages: [], error: null };
-  let data: PoeNextData | ExportData;
-  try {
-    data = JSON.parse(raw) as PoeNextData | ExportData;
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Invalid JSON";
-    return { messages: [], error: `Invalid JSON payload: ${message}` };
-  }
-
-  const nextDataEdges =
-    (data as PoeNextData)?.props?.pageProps?.data?.mainQuery?.chatShare?.messagesConnection
-      ?.edges;
-  if (Array.isArray(nextDataEdges)) {
-    return {
-      messages: nextDataEdges.map((edge) => {
-        const message = edge?.node;
-        const attachments: string[] = [];
-        if (Array.isArray(message?.attachments)) {
-          const seen = new Set<string>();
-          for (const attachment of message.attachments) {
-            const url = attachment?.file?.url ?? attachment?.url;
-            if (typeof url === "string" && url.length > 0 && !seen.has(url)) {
-              seen.add(url);
-              attachments.push(url);
-            }
-          }
-        }
-
-        return {
-          role: message?.author === "human" ? "human" : "bot",
-          text: typeof message?.text === "string" ? message.text : "",
-          attachments,
-        };
-      }),
-      error: null,
-    };
-  }
-
-  const exportMessages = (data as ExportData)?.messages;
-  if (Array.isArray(exportMessages)) {
-    return {
-      messages: exportMessages.map((message) => {
-        const attachments: string[] = [];
-        if (Array.isArray(message?.attachments)) {
-          const seen = new Set<string>();
-          for (const attachment of message.attachments) {
-            const url = attachment?.url;
-            if (typeof url === "string" && url.length > 0 && !seen.has(url)) {
-              seen.add(url);
-              attachments.push(url);
-            }
-          }
-        }
-
-        return {
-          role: message?.role === "user" ? "human" : "bot",
-          text: typeof message?.content === "string" ? message.content : "",
-          attachments,
-        };
-      }),
-      error: null,
-    };
-  }
-
-  return { messages: [], error: "Chat data missing from JSON payload." };
+function contentTypeForSourceName(name: string) {
+  return name.toLowerCase().endsWith(".md")
+    ? "text/markdown"
+    : "application/json";
 }
 
 function formatGalleryZipName(date: Date) {
@@ -456,15 +391,36 @@ function buildAttachmentName(rawUrl: string, index: number, seenNames: Map<strin
 }
 
 function isVideoUrl(rawUrl: string) {
+  const extension = extensionFromUrl(rawUrl);
+  if (extension && videoExtensions.has(extension)) return true;
+
   try {
     const url = new URL(rawUrl);
     const segments = url.pathname.split("/");
-    const lastSegment = segments[segments.length - 1] ?? "";
-    if (segments.includes("video")) return true;
-    const extension = lastSegment.split(".").pop()?.toLowerCase();
-    return extension ? videoExtensions.has(extension) : false;
+    return segments.includes("video");
   } catch {
     return false;
+  }
+}
+
+function isAudioUrl(rawUrl: string) {
+  const extension = extensionFromUrl(rawUrl);
+  return extension ? audioExtensions.has(extension) : false;
+}
+
+function isFileUrl(rawUrl: string) {
+  const extension = extensionFromUrl(rawUrl);
+  return extension ? fileExtensions.has(extension) : false;
+}
+
+function extensionFromUrl(rawUrl: string) {
+  try {
+    const url = new URL(rawUrl);
+    const lastSegment = url.pathname.split("/").pop() ?? "";
+    const extension = lastSegment.split(".").pop()?.toLowerCase();
+    return extension && extension !== lastSegment.toLowerCase() ? extension : "";
+  } catch {
+    return "";
   }
 }
 
@@ -485,7 +441,7 @@ async function fetchShare() {
   if (input) input.value = normalized;
   setError(null);
   urls.length = 0;
-  nextDataRaw = null;
+  sourceFile = null;
   chatMessages = [];
   clearGrid();
   clearChat();
@@ -513,7 +469,7 @@ async function fetchShare() {
       : [];
     const raw =
       typeof payload?.nextData === "string" ? (payload.nextData as string) : null;
-    applyNextData(raw, fallbackUrls);
+    applyChatData(raw, fallbackUrls, "next-data.json");
     const url = new URL(window.location.href);
     url.searchParams.set("url", normalized);
     window.history.replaceState({}, "", url.toString());
@@ -526,7 +482,7 @@ async function fetchShare() {
 }
 
 async function downloadAll() {
-  if (urls.length === 0 && !nextDataRaw) return;
+  if (urls.length === 0 && !sourceFile) return;
   if (menuDownload) menuDownload.disabled = true;
   const filename = formatGalleryZipName(new Date());
 
@@ -534,10 +490,10 @@ async function downloadAll() {
     const seenNames = new Map<string, number>();
     const zipResponse = downloadZip(
       (async function* () {
-        if (nextDataRaw) {
+        if (sourceFile) {
           yield {
-            name: "next-data.json",
-            input: new Blob([nextDataRaw], { type: "application/json" }),
+            name: sourceFile.name,
+            input: new Blob([sourceFile.raw], { type: sourceFile.type }),
           };
         }
         for (const [index, url] of urls.entries()) {
@@ -586,7 +542,7 @@ leftButton?.addEventListener("click", () => {
   if (leftButton?.disabled) return;
   if (hasContent()) {
     urls.length = 0;
-    nextDataRaw = null;
+    sourceFile = null;
     chatMessages = [];
     clearGrid();
     clearChat();
@@ -664,7 +620,7 @@ uploadInput?.addEventListener("change", () => {
     try {
       const text = await file.text();
       if (input) input.value = "";
-      applyNextData(text);
+      applyChatData(text, [], file.name || "chat-export");
       const url = new URL(window.location.href);
       url.searchParams.delete("url");
       window.history.replaceState({}, "", url.toString());
