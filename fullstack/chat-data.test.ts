@@ -77,9 +77,6 @@ describe("parseChatMessages", () => {
   });
 
   test("parses Markdown transcripts emitted by the Poe export bots", () => {
-    const mediaHtml =
-      '<body><video src="https://example.test/base/video.mp4?download=1&amp;name=clip" controls></video></body>';
-    const mediaSrc = `data:text/html;charset=utf-8,${encodeURIComponent(mediaHtml)}`;
     const result = parseChatMessages(`User:
 
 Hello
@@ -92,7 +89,7 @@ Here is the image and video.
 
 ![cat](<https://example.test/cat.png>)
 
-<iframe width="100%" height="720" src="${mediaSrc}" allow="autoplay"></iframe>`);
+[clip.mp4](<https://example.test/base/video.mp4?download=1&name=clip>)`);
 
     expect(result.error).toBeNull();
     expect(result.messages).toEqual([
@@ -103,11 +100,29 @@ Here is the image and video.
       },
       {
         role: "bot",
-        text: "Here is the image and video.",
+        text: "Here is the image and video.\n\nclip.mp4",
         attachments: [
           "https://example.test/cat.png",
           "https://example.test/base/video.mp4?download=1&name=clip",
         ],
+      },
+    ]);
+  });
+
+  test("parses legacy embedded media iframes", () => {
+    const mediaHtml =
+      '<body><video src="https://example.test/base/video.mp4?download=1&amp;name=clip" controls></video></body>';
+    const mediaSrc = `data:text/html;charset=utf-8,${encodeURIComponent(mediaHtml)}`;
+    const result = parseChatMessages(`Bot:
+
+<iframe width="100%" height="720" src="${mediaSrc}" allow="autoplay"></iframe>`);
+
+    expect(result.error).toBeNull();
+    expect(result.messages).toEqual([
+      {
+        role: "bot",
+        text: "",
+        attachments: ["https://example.test/base/video.mp4?download=1&name=clip"],
       },
     ]);
   });

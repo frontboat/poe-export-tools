@@ -34,6 +34,10 @@ body {
   position: relative;
 }
 
+body.has-image-viewer {
+  overflow: hidden;
+}
+
 .skip-link {
   position: absolute;
   top: var(--space-2);
@@ -414,6 +418,10 @@ body::before {
 
 .chat-media-item {
   display: block;
+  width: 100%;
+  padding: 0;
+  font: inherit;
+  text-align: inherit;
   min-width: 0;
   background: #080808;
   border-radius: var(--radius);
@@ -436,6 +444,11 @@ body::before {
 }
 
 .media-item {
+  display: block;
+  width: 100%;
+  padding: 0;
+  font: inherit;
+  text-align: inherit;
   background: var(--panel);
   border-radius: var(--radius);
   overflow: hidden;
@@ -446,6 +459,12 @@ body::before {
   transform: translateY(8px);
   animation: item-in 0.35s ease forwards;
   transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.media-item:is(button),
+.chat-media-item:is(button) {
+  appearance: none;
+  cursor: zoom-in;
 }
 
 .media-item:hover {
@@ -514,6 +533,73 @@ body::before {
   font-size: 0.72rem;
   line-height: 1.4;
   overflow-wrap: anywhere;
+}
+
+.image-viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: clamp(var(--space-2), 3vw, var(--space-4));
+  background: rgba(0, 0, 0, 0.92);
+}
+
+.viewer-stage {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  align-items: center;
+  justify-items: center;
+  gap: var(--space-2);
+  touch-action: pan-y;
+}
+
+.viewer-image {
+  max-width: 100%;
+  max-height: calc(100vh - 92px);
+  object-fit: contain;
+  background: #050505;
+}
+
+.viewer-count {
+  min-height: 1em;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.72rem;
+  line-height: 1;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.viewer-control {
+  position: fixed;
+  z-index: 51;
+  background: rgba(8, 8, 8, 0.78);
+  backdrop-filter: blur(10px);
+}
+
+.viewer-close {
+  top: max(var(--space-3), env(safe-area-inset-top));
+  right: max(var(--space-3), env(safe-area-inset-right));
+}
+
+.viewer-prev {
+  left: max(var(--space-3), env(safe-area-inset-left));
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.viewer-next {
+  right: max(var(--space-3), env(safe-area-inset-right));
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.viewer-control:disabled {
+  opacity: 0;
+  pointer-events: none;
 }
 
 

@@ -179,6 +179,82 @@
       <div id="chat" class="chat-view is-hidden"></div>
       <div id="grid" class="media-grid"></div>
     </main>
+    <div
+      id="image-viewer"
+      class="image-viewer is-hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Image preview"
+    >
+      <button
+        id="viewer-close"
+        class="icon-button viewer-control viewer-close"
+        type="button"
+        aria-label="Close image preview"
+      >
+        <svg
+          aria-hidden="true"
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M18 6 6 18" />
+          <path d="m6 6 12 12" />
+        </svg>
+      </button>
+      <button
+        id="viewer-prev"
+        class="icon-button viewer-control viewer-prev"
+        type="button"
+        aria-label="Previous image"
+      >
+        <svg
+          aria-hidden="true"
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="m15 18-6-6 6-6" />
+        </svg>
+      </button>
+      <figure id="viewer-stage" class="viewer-stage">
+        <img id="viewer-image" class="viewer-image" alt="" />
+        <figcaption id="viewer-count" class="viewer-count"></figcaption>
+      </figure>
+      <button
+        id="viewer-next"
+        class="icon-button viewer-control viewer-next"
+        type="button"
+        aria-label="Next image"
+      >
+        <svg
+          aria-hidden="true"
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="m9 18 6-6-6-6" />
+        </svg>
+      </button>
+    </div>
     <input
       id="upload-input"
       name="upload-input"

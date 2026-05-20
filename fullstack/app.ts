@@ -14,16 +14,27 @@ const menuToggle = document.querySelector<HTMLButtonElement>("#menu-toggle");
 const uploadInput = document.querySelector<HTMLInputElement>("#upload-input");
 const notice = document.querySelector<HTMLElement>("#notice");
 const intro = document.querySelector<HTMLElement>("#intro");
+const imageViewer = document.querySelector<HTMLElement>("#image-viewer");
+const viewerStage = document.querySelector<HTMLElement>("#viewer-stage");
+const viewerImage = document.querySelector<HTMLImageElement>("#viewer-image");
+const viewerCount = document.querySelector<HTMLElement>("#viewer-count");
+const viewerClose = document.querySelector<HTMLButtonElement>("#viewer-close");
+const viewerPrev = document.querySelector<HTMLButtonElement>("#viewer-prev");
+const viewerNext = document.querySelector<HTMLButtonElement>("#viewer-next");
 
 const urls: string[] = [];
+const imageUrls: string[] = [];
 let sourceFile: SourceFile | null = null;
 let chatMessages: ChatMessage[] = [];
 let isChatView = false;
 let isLoading = false;
 let isMenuOpen = false;
+let viewerIndex = -1;
+let viewerTouchStartX: number | null = null;
 
 const videoExtensions = new Set(["mp4", "webm", "ogg", "mov", "m4v"]);
 const audioExtensions = new Set(["mp3", "wav", "m4a", "weba"]);
+const imageExtensions = new Set(["avif", "gif", "jpeg", "jpg", "png", "webp"]);
 const fileExtensions = new Set([
   "csv",
   "doc",
@@ -202,26 +213,16 @@ function describeAttachment(url: string, index?: number) {
   return typeof index === "number" ? `Attachment ${index + 1}` : "Attachment";
 }
 
-function createMediaAnchor(
+function createMediaItem(
   url: string,
   className: string,
   index?: number,
   loading: "eager" | "lazy" = "lazy"
 ) {
   const label = describeAttachment(url, index);
-  const anchor = document.createElement("a");
-  anchor.className = className;
-  if (typeof index === "number") {
-    anchor.style.animationDelay = `${Math.min(index * 0.03, 0.3)}s`;
-  }
-  anchor.href = url;
-  anchor.target = "_blank";
-  anchor.rel = "noreferrer";
-  anchor.setAttribute("aria-label", label);
-
-  const preview = document.createElement("div");
-  preview.className = "media-preview";
   if (isVideoUrl(url)) {
+    const item = createMediaShell("div", className, index);
+    const preview = createMediaPreview();
     const video = document.createElement("video");
     video.src = url;
     video.controls = true;
@@ -230,14 +231,27 @@ function createMediaAnchor(
     video.preload = "metadata";
     video.setAttribute("aria-label", label);
     preview.appendChild(video);
+    item.appendChild(preview);
+    return item;
   } else if (isAudioUrl(url)) {
+    const item = createMediaShell("div", className, index);
+    const preview = createMediaPreview();
     const audio = document.createElement("audio");
     audio.src = url;
     audio.controls = true;
     audio.preload = "metadata";
     audio.setAttribute("aria-label", label);
     preview.appendChild(audio);
+    item.appendChild(preview);
+    return item;
   } else if (isFileUrl(url)) {
+    const item = createMediaShell("a", className, index);
+    item.href = url;
+    item.target = "_blank";
+    item.rel = "noreferrer";
+    item.setAttribute("aria-label", label);
+
+    const preview = createMediaPreview();
     const file = document.createElement("div");
     file.className = "file-preview";
     file.innerHTML = icons.file;
@@ -246,16 +260,42 @@ function createMediaAnchor(
     name.textContent = attachmentFilename(url) || "File";
     file.appendChild(name);
     preview.appendChild(file);
-  } else {
-    const img = document.createElement("img");
-    img.src = url;
-    img.loading = loading;
-    img.alt = label;
-    preview.appendChild(img);
+    item.appendChild(preview);
+    return item;
   }
 
-  anchor.appendChild(preview);
-  return anchor;
+  const item = createMediaShell("button", className, index);
+  item.type = "button";
+  item.setAttribute("aria-label", `Preview ${label}`);
+  item.addEventListener("click", () => openImageViewer(url));
+
+  const preview = createMediaPreview();
+  const img = document.createElement("img");
+  img.src = url;
+  img.loading = loading;
+  img.alt = label;
+  preview.appendChild(img);
+  item.appendChild(preview);
+  return item;
+}
+
+function createMediaShell<T extends "a" | "button" | "div">(
+  tagName: T,
+  className: string,
+  index?: number
+) {
+  const element = document.createElement(tagName);
+  element.className = className;
+  if (typeof index === "number") {
+    element.style.animationDelay = `${Math.min(index * 0.03, 0.3)}s`;
+  }
+  return element;
+}
+
+function createMediaPreview() {
+  const preview = document.createElement("div");
+  preview.className = "media-preview";
+  return preview;
 }
 
 function renderUrls(list: string[]) {
@@ -269,7 +309,7 @@ function renderUrls(list: string[]) {
   const fragment = document.createDocumentFragment();
 
   list.forEach((url, index) => {
-    fragment.appendChild(createMediaAnchor(url, "media-item", index));
+    fragment.appendChild(createMediaItem(url, "media-item", index));
   });
 
   grid.appendChild(fragment);
@@ -306,7 +346,7 @@ function renderChat(messages: ChatMessage[]) {
       const media = document.createElement("div");
       media.className = "chat-media";
       message.attachments.forEach((url) => {
-        media.appendChild(createMediaAnchor(url, "chat-media-item", undefined, "eager"));
+        media.appendChild(createMediaItem(url, "chat-media-item", undefined, "eager"));
       });
       card.appendChild(media);
     }
@@ -329,6 +369,7 @@ function applyChatData(
   const parsed = parseChatMessages(raw);
   chatMessages = parsed.messages;
   urls.length = 0;
+  imageUrls.length = 0;
   const seen = new Set<string>();
   for (const message of chatMessages) {
     for (const url of message.attachments) {
@@ -341,6 +382,7 @@ function applyChatData(
   if (urls.length === 0 && fallbackUrls.length > 0) {
     urls.push(...fallbackUrls);
   }
+  syncImageUrls();
 
   renderUrls(urls);
   renderChat(chatMessages);
@@ -424,6 +466,74 @@ function extensionFromUrl(rawUrl: string) {
   }
 }
 
+function isImageUrl(rawUrl: string) {
+  if (rawUrl.startsWith("data:image/")) return true;
+  if (isVideoUrl(rawUrl) || isAudioUrl(rawUrl) || isFileUrl(rawUrl)) return false;
+  const extension = extensionFromUrl(rawUrl);
+  if (extension) return imageExtensions.has(extension);
+
+  try {
+    const url = new URL(rawUrl);
+    return url.pathname.split("/").includes("image");
+  } catch {
+    return true;
+  }
+}
+
+function syncImageUrls() {
+  imageUrls.length = 0;
+  for (const url of urls) {
+    if (isImageUrl(url)) {
+      imageUrls.push(url);
+    }
+  }
+}
+
+function openImageViewer(url: string) {
+  const index = imageUrls.indexOf(url);
+  if (index < 0) return;
+
+  viewerIndex = index;
+  renderImageViewer();
+  imageViewer?.classList.remove("is-hidden");
+  document.body.classList.add("has-image-viewer");
+  viewerClose?.focus();
+}
+
+function closeImageViewer() {
+  if (viewerIndex < 0) return;
+
+  viewerIndex = -1;
+  imageViewer?.classList.add("is-hidden");
+  document.body.classList.remove("has-image-viewer");
+  if (viewerImage) {
+    viewerImage.removeAttribute("src");
+    viewerImage.alt = "";
+  }
+}
+
+function showViewerImage(delta: number) {
+  if (viewerIndex < 0 || imageUrls.length === 0) return;
+
+  viewerIndex = (viewerIndex + delta + imageUrls.length) % imageUrls.length;
+  renderImageViewer();
+}
+
+function renderImageViewer() {
+  if (!viewerImage || !viewerCount || viewerIndex < 0) return;
+
+  const url = imageUrls[viewerIndex];
+  if (!url) return;
+
+  viewerImage.src = url;
+  viewerImage.alt = describeAttachment(url);
+  viewerCount.textContent = `${viewerIndex + 1} / ${imageUrls.length}`;
+
+  const hasMultipleImages = imageUrls.length > 1;
+  if (viewerPrev) viewerPrev.disabled = !hasMultipleImages;
+  if (viewerNext) viewerNext.disabled = !hasMultipleImages;
+}
+
 async function fetchShare() {
   if (!input) return;
   const shareUrl = input.value.trim();
@@ -441,8 +551,10 @@ async function fetchShare() {
   if (input) input.value = normalized;
   setError(null);
   urls.length = 0;
+  imageUrls.length = 0;
   sourceFile = null;
   chatMessages = [];
+  closeImageViewer();
   clearGrid();
   clearChat();
   setLoading(true);
@@ -542,8 +654,10 @@ leftButton?.addEventListener("click", () => {
   if (leftButton?.disabled) return;
   if (hasContent()) {
     urls.length = 0;
+    imageUrls.length = 0;
     sourceFile = null;
     chatMessages = [];
+    closeImageViewer();
     clearGrid();
     clearChat();
     setError(null);
@@ -644,10 +758,50 @@ document.addEventListener("click", (event) => {
 });
 
 document.addEventListener("keydown", (event) => {
+  if (viewerIndex >= 0) {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeImageViewer();
+    } else if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      showViewerImage(-1);
+    } else if (event.key === "ArrowRight") {
+      event.preventDefault();
+      showViewerImage(1);
+    }
+    return;
+  }
+
   if (event.key !== "Escape") return;
   if (!isMenuOpen) return;
   event.preventDefault();
   closeMenuRestoreFocus();
+});
+
+imageViewer?.addEventListener("click", (event) => {
+  if (event.target === imageViewer) {
+    closeImageViewer();
+  }
+});
+
+viewerClose?.addEventListener("click", closeImageViewer);
+viewerPrev?.addEventListener("click", () => showViewerImage(-1));
+viewerNext?.addEventListener("click", () => showViewerImage(1));
+
+viewerStage?.addEventListener("touchstart", (event) => {
+  viewerTouchStartX = event.changedTouches[0]?.clientX ?? null;
+});
+
+viewerStage?.addEventListener("touchend", (event) => {
+  if (viewerTouchStartX === null) return;
+
+  const endX = event.changedTouches[0]?.clientX;
+  if (typeof endX !== "number") return;
+
+  const delta = endX - viewerTouchStartX;
+  viewerTouchStartX = null;
+  if (Math.abs(delta) < 40) return;
+  showViewerImage(delta > 0 ? -1 : 1);
 });
 
 const params = new URLSearchParams(window.location.search);
